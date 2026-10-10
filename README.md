@@ -1,6 +1,14 @@
 # RAILLOG 🚆
 ### Nowoczesny Dziennik Służb Maszynisty na system Android (v1.1.0)
 
+[![Pobierz najnowsze APK](https://img.shields.io/badge/Pobierz_APK-RailLog_Najnowsza_Wersja-brightgreen?style=for-the-badge&logo=android)](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)
+[![GitHub Release](https://img.shields.io/github/v/release/mateuszsz3623/RailLog?style=for-the-badge&color=red)](https://github.com/mateuszsz3623/RailLog/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/mateuszsz3623/RailLog/build-apk.yml?branch=main&style=for-the-badge)](https://github.com/mateuszsz3623/RailLog/actions)
+
+> 📲 **Pobierz najnowszą wersję na telefon:**  
+> **[👉 Pobierz plik RailLog-release.apk (Najnowsza wersja)](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)**  
+> *(Wszystkie oficjalne wydania i historia plików APK znajdują się w zakładce [Releases](https://github.com/mateuszsz3623/RailLog/releases))*
+
 > **Elegancka, szybka i w 100% prywatna aplikacja dla maszynistów kolejowych do rejestrowania każdej służby.**  
 > Twórca: **Mateusz Szerszeń**
 
