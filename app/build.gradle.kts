@@ -28,9 +28,9 @@ android {
             val keystoreFile = rootProject.file("raillog-release.jks")
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
-                storePassword = "RailLog2026SecureKey"
-                keyAlias = "raillog"
-                keyPassword = "RailLog2026SecureKey"
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "RailLog2026SecureKey"
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "raillog"
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "RailLog2026SecureKey"
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -40,7 +40,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null) {
+                signingConfig = releaseSigning
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -14,3 +14,4 @@ app/build/
 # Keystores (keep private locally)
 *.jks
 *.keystore
+KEYSTORE_BASE64.txt
