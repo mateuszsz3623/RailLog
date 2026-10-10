@@ -1,0 +1,70 @@
+<resources>
+    <string name="app_name">RailLog</string>
+    <string name="app_subtitle">Dziennik służb maszynisty</string>
+
+    <!-- Navigation -->
+    <string name="nav_start">Start</string>
+    <string name="nav_duties">Służby</string>
+    <string name="nav_statistics">Statystyki</string>
+    <string name="nav_settings">Ustawienia</string>
+
+    <!-- Dashboard -->
+    <string name="new_duty_button">+ NOWA SŁUŻBA</string>
+    <string name="last_duty">Ostatnia służba</string>
+    <string name="duties_this_month">Służby w tym miesiącu</string>
+    <string name="overtime_this_month">Nadgodziny</string>
+    <string name="no_duties_title">Brak zapisanych służb</string>
+    <string name="no_duties_subtitle">Zapisz swoją pierwszą służbę i rozpocznij dziennik.</string>
+
+    <!-- Duty Form -->
+    <string name="duty_form_title_new">Nowa służba</string>
+    <string name="duty_form_title_edit">Edycja służby</string>
+    <string name="date_label">Data służby</string>
+    <string name="today">Dzisiaj</string>
+    <string name="yesterday">Wczoraj</string>
+    <string name="vehicle_series_label">Seria pojazdu (np. EU200, EP09)</string>
+    <string name="vehicle_number_label">Numer pojazdu (np. 005)</string>
+    <string name="frequent_series">Najczęściej używane</string>
+    <string name="recent_vehicles">Ostatnio używane</string>
+    <string name="route_from_label">Stacja początkowa (Od)</string>
+    <string name="route_to_label">Stacja docelowa (Do)</string>
+    <string name="recent_routes">Ostatnie trasy</string>
+    <string name="add_route_segment">+ Dodaj kolejny odcinek</string>
+    <string name="train_number_label">Numer pociągu (np. IC 1234)</string>
+    <string name="add_train_number">+ Dodaj pociąg</string>
+    <string name="overtime_label">Nadgodziny</string>
+    <string name="overtime_none">Brak</string>
+    <string name="overtime_custom">Czas</string>
+    <string name="overtime_whole_duty">Cała służba nadgodzinowa</string>
+    <string name="notes_label">Uwagi ze szlaku</string>
+    <string name="notes_hint">np. Opóźnienie 8 min, spokojny przejazd, defekt...</string>
+    <string name="additional_notes_label">Dodatkowe prywatne notatki</string>
+    <string name="save_duty">ZAPISZ SŁUŻBĘ</string>
+    <string name="duty_saved">Służba zapisana ✓</string>
+
+    <!-- History / Details -->
+    <string name="search_hint">Szukaj serii, trasy, pociągu, uwag...</string>
+    <string name="filter_all">Wszystkie</string>
+    <string name="filter_overtime">Z nadgodzinami</string>
+    <string name="filter_this_month">Ten miesiąc</string>
+    <string name="delete_duty">Usuń służbę</string>
+    <string name="edit_duty">Edytuj służbę</string>
+    <string name="delete_confirm_title">Usunąć tę służbę?</string>
+    <string name="delete_confirm_message">Wpis zostanie trwale usunięty z Twojego dziennika.</string>
+    <string name="cancel">Anuluj</string>
+    <string name="delete">Usuń</string>
+    <string name="undo">Cofnij</string>
+
+    <!-- Settings / Export -->
+    <string name="export_section">Eksport danych</string>
+    <string name="export_csv">Eksportuj do CSV (Excel)</string>
+    <string name="export_json">Eksportuj do JSON</string>
+    <string name="backup_section">Kopia zapasowa i Przywracanie</string>
+    <string name="create_backup">Utwórz pełną kopię zapasową</string>
+    <string name="restore_backup">Przywróć dane z kopii</string>
+    <string name="theme_section">Motyw aplikacji</string>
+    <string name="theme_dark">Ciemny (Grafitowy)</string>
+    <string name="theme_light">Jasny (Technical Light)</string>
+    <string name="theme_system">Zgodny z systemem</string>
+    <string name="privacy_note">100% Offline. Zero reklam, zero chmury, zero trackerów.</string>
+</resources>

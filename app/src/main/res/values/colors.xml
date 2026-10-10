@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="griffin_red">#E63946</color>
+    <color name="griffin_red_variant">#D90429</color>
+    <color name="deep_carbon">#0E1217</color>
+    <color name="technical_graphite">#181E26</color>
+    <color name="slate_iron">#222A36</color>
+    <color name="border_technical">#2D3748</color>
+    <color name="pantograph_amber">#FFB703</color>
+    <color name="signal_green">#10B981</color>
+    <color name="text_white">#F8FAFC</color>
+    <color name="text_steel">#94A3B8</color>
+</resources>
