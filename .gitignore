@@ -15,3 +15,4 @@ app/build/
 *.jks
 *.keystore
 KEYSTORE_BASE64.txt
+.kotlin/
