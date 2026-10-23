@@ -1,6 +1,10 @@
 package pl.raillog.app.presentation.history
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
 import pl.raillog.app.core.designsystem.SignalGreen
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
 import pl.raillog.app.domain.model.DutyFilterType
@@ -88,7 +93,7 @@ fun HistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Historia & Karta Szlaku",
+                        text = "Dziennik & Karta Szlaku",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -114,7 +119,7 @@ fun HistoryScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            // Main Top Tabs: [Dziennik Służb] | [Znajomość Szlaku i Taboru]
+            // Main Top Tabs: [Dziennik Służb] | [Karta Szlaku i Taboru]
             TabRow(
                 selectedTabIndex = if (currentTab == HistoryTab.DUTIES) 0 else 1,
                 containerColor = MaterialTheme.colorScheme.background,
@@ -203,7 +208,7 @@ fun HistoryScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (filter.query.isNotEmpty()) "Brak wyników wyszukiwania" else "Brak służb w tym okresie",
+                            text = if (filter.query.isNotEmpty()) "Brak wyników wyszukiwania" else "Brak zarejestrowanych służb",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -251,7 +256,7 @@ fun HistoryScreen(
                     FilterChip(
                         selected = knowledgeType == KnowledgeType.VEHICLES,
                         onClick = { viewModel.setKnowledgeType(KnowledgeType.VEHICLES) },
-                        label = { Text("Historia Taboru / Pojazdów") },
+                        label = { Text("Historia Taboru") },
                         colors = customChipColors(),
                         modifier = Modifier.weight(1f)
                     )
@@ -391,18 +396,7 @@ private fun StationKnowledgeCard(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = badgeColor.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
-                ) {
-                    Text(
-                        text = daysText,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                StatusBadge(text = daysText, color = badgeColor)
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -433,7 +427,11 @@ private fun StationKnowledgeCard(
                 }
             }
 
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -447,8 +445,9 @@ private fun StationKnowledgeCard(
                     )
                     item.duties.take(5).forEach { duty ->
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onDutyClick(duty.id) }
@@ -456,17 +455,17 @@ private fun StationKnowledgeCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(8.dp),
+                                    .padding(10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "${duty.date} • ${duty.displayRoute}",
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    if (duty.displayTrains != "—") {
+                                    if (duty.displayTrains != "—" || duty.displayVehicle != "—") {
                                         Text(
                                             text = "Pociąg: ${duty.displayTrains} • Pojazd: ${duty.displayVehicle}",
                                             style = MaterialTheme.typography.labelSmall,
@@ -476,7 +475,7 @@ private fun StationKnowledgeCard(
                                 }
                                 Text(
                                     text = "Szczegóły ›",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = GriffinRed
                                 )
                             }
@@ -532,18 +531,7 @@ private fun VehicleKnowledgeCard(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = GriffinRed.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, GriffinRed.copy(alpha = 0.5f))
-                ) {
-                    Text(
-                        text = daysText,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = GriffinRed,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                StatusBadge(text = daysText, color = GriffinRed)
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -574,7 +562,11 @@ private fun VehicleKnowledgeCard(
                 }
             }
 
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -588,8 +580,9 @@ private fun VehicleKnowledgeCard(
                     )
                     item.duties.take(5).forEach { duty ->
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onDutyClick(duty.id) }
@@ -597,14 +590,14 @@ private fun VehicleKnowledgeCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(8.dp),
+                                    .padding(10.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "${duty.date} • ${duty.displayRoute}",
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     if (duty.displayTrains != "—") {
@@ -617,7 +610,7 @@ private fun VehicleKnowledgeCard(
                                 }
                                 Text(
                                     text = "Szczegóły ›",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = GriffinRed
                                 )
                             }
@@ -646,13 +639,13 @@ private fun MonthHeader(group: MonthGroup) {
             text = group.displayMonth.uppercase(),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.8.sp
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "${group.duties.size} służb" + if (group.totalOvertimeMinutes > 0) " • +$overtimeText" else "",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -667,14 +660,14 @@ private fun HistoryDutyItem(
     val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEE", Locale("pl"))
 
     TechnicalCard(
-        accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) GriffinRed else null,
+        accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) PantographAmber else null,
         onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -705,7 +698,7 @@ private fun HistoryDutyItem(
                     .height(46.dp)
             ) {}
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 // Route as main duty identifier
@@ -722,18 +715,10 @@ private fun HistoryDutyItem(
                     )
 
                     if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = GriffinRed.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, GriffinRed.copy(alpha = 0.4f))
-                        ) {
-                            Text(
-                                text = duty.displayOvertime,
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = GriffinRed,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
+                        StatusBadge(
+                            text = duty.displayOvertime,
+                            color = PantographAmber
+                        )
                     }
                 }
 
@@ -782,13 +767,15 @@ private fun HistoryDutyItem(
 @Composable
 private fun customSearchFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
     focusedContainerColor = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface
 )
 
 @Composable
 private fun customChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = GriffinRed.copy(alpha = 0.2f),
-    selectedLabelColor = GriffinRed
+    selectedContainerColor = GriffinRed.copy(alpha = 0.12f),
+    selectedLabelColor = GriffinRed,
+    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )

@@ -22,18 +22,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
@@ -42,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
-import pl.raillog.app.core.designsystem.PantographAmber
 
 @Composable
 fun RailLogHeroButton(
@@ -51,7 +51,8 @@ fun RailLogHeroButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     containerColor: Color = GriffinRed,
-    contentColor: Color = Color.White
+    contentColor: Color = Color.White,
+    enabled: Boolean = true
 ) {
     val view = LocalView.current
     Button(
@@ -59,18 +60,21 @@ fun RailLogHeroButton(
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
         },
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(52.dp),
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.5f),
+            disabledContentColor = contentColor.copy(alpha = 0.7f)
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp, pressedElevation = 0.dp)
     ) {
         if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(22.dp))
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
         }
         Text(
@@ -81,30 +85,64 @@ fun RailLogHeroButton(
 }
 
 @Composable
+fun RailLogSecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    borderColor: Color = MaterialTheme.colorScheme.outline
+) {
+    val view = LocalView.current
+    OutlinedButton(
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            onClick()
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, borderColor),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = contentColor)
+    ) {
+        if (icon != null) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = contentColor)
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+        )
+    }
+}
+
+@Composable
 fun QuickChip(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
-    leadingIcon: ImageVector? = null
+    leadingIcon: ImageVector? = null,
+    accentColor: Color = GriffinRed
 ) {
     val view = LocalView.current
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) GriffinRed.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+        targetValue = if (isSelected) accentColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
         label = "chipBg"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) GriffinRed else MaterialTheme.colorScheme.outline,
+        targetValue = if (isSelected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
         label = "chipBorder"
     )
-    val textColor = if (isSelected) GriffinRed else MaterialTheme.colorScheme.onSurface
+    val textColor = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurface
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         color = backgroundColor,
         border = BorderStroke(1.dp, borderColor),
         modifier = modifier
-            .height(38.dp)
+            .height(36.dp)
             .clickable {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 onClick()
@@ -120,16 +158,16 @@ fun QuickChip(
                     imageVector = leadingIcon,
                     contentDescription = null,
                     tint = textColor,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(15.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
             }
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
+                style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 ),
                 color = textColor
             )
@@ -144,11 +182,11 @@ fun TechnicalCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val cardShape = RoundedCornerShape(12.dp)
+    val cardShape = RoundedCornerShape(14.dp)
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surface
     )
-    val cardBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+    val cardBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
 
     if (onClick != null) {
         val view = LocalView.current
@@ -201,92 +239,40 @@ private fun CardContentWithAccent(
 }
 
 @Composable
-fun OvertimeStepper(
-    minutes: Int,
-    onMinutesChanged: (Int) -> Unit,
-    modifier: Modifier = Modifier
+fun StatusBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = GriffinRed,
+    backgroundColor: Color = color.copy(alpha = 0.12f),
+    borderColor: Color = color.copy(alpha = 0.4f)
 ) {
-    val hours = minutes / 60
-    val remMinutes = minutes % 60
-    val view = LocalView.current
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Hours adjuster
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = {
-                        if (hours > 0) {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            onMinutesChanged((hours - 1) * 60 + remMinutes)
-                        }
-                    }
-                ) {
-                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Mniej godzin")
-                }
-                Text(
-                    text = "${hours} h",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                        onMinutesChanged((hours + 1) * 60 + remMinutes)
-                    }
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Więcej godzin")
-                }
-            }
-
-            // Minutes adjuster
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                        val newTotal = (minutes - 15).coerceAtLeast(0)
-                        onMinutesChanged(newTotal)
-                    }
-                ) {
-                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Mniej minut")
-                }
-                Text(
-                    text = "${remMinutes} min",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                IconButton(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                        onMinutesChanged(minutes + 15)
-                    }
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Więcej minut")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Quick add chips
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            QuickChip(text = "+15m", onClick = { onMinutesChanged(minutes + 15) })
-            QuickChip(text = "+30m", onClick = { onMinutesChanged(minutes + 30) })
-            QuickChip(text = "+1h", onClick = { onMinutesChanged(minutes + 60) })
-            QuickChip(text = "+2h", onClick = { onMinutesChanged(minutes + 120) })
-            if (minutes > 0) {
-                QuickChip(
-                    text = "Wyzeruj",
-                    onClick = { onMinutesChanged(0) }
-                )
-            }
-        }
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            ),
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+        )
     }
+}
+
+@Composable
+fun FormSectionHeader(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelMedium.copy(
+            letterSpacing = 1.2.sp,
+            fontWeight = FontWeight.SemiBold
+        ),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(bottom = 6.dp)
+    )
 }

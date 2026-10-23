@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +62,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import pl.raillog.app.R
+import pl.raillog.app.core.designsystem.AppThemeMode
 import pl.raillog.app.core.designsystem.GriffinRed
+import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import java.io.File
 
@@ -67,8 +73,8 @@ import java.io.File
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    isDarkTheme: Boolean,
-    onThemeChanged: (Boolean) -> Unit
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit
 ) {
     val context = LocalContext.current
     val isProcessing by viewModel.isProcessing.collectAsState()
@@ -130,10 +136,54 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section 1: EXPORT
+            // Section 1: THEME SELECTION
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                SettingsSectionHeader(title = "EKSPORT DANYCH")
+                FormSectionHeader(title = "MOTYW APLIKACJI")
+                TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = GriffinRed)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Wybór stylu wizualnego",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        ThemeOptionRow(
+                            title = "Ciemny (Grafitowy)",
+                            subtitle = "Głębokie grafity, wysoki kontrast, idealny w kabinie",
+                            selected = themeMode == AppThemeMode.DARK,
+                            onClick = { onThemeModeChanged(AppThemeMode.DARK) }
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        ThemeOptionRow(
+                            title = "Jasny (Technical Precision)",
+                            subtitle = "Czysta stalowa biel, wysoka czytelność w pełnym słońcu",
+                            selected = themeMode == AppThemeMode.LIGHT,
+                            onClick = { onThemeModeChanged(AppThemeMode.LIGHT) }
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        ThemeOptionRow(
+                            title = "Zgodny z systemem Android",
+                            subtitle = "Dopasowuje się automatycznie do trybu telefonu",
+                            selected = themeMode == AppThemeMode.SYSTEM,
+                            onClick = { onThemeModeChanged(AppThemeMode.SYSTEM) }
+                        )
+                    }
+                }
+            }
+
+            // Section 2: EXPORT
+            item {
+                FormSectionHeader(title = "EKSPORT DANYCH")
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -146,7 +196,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Polskie kodowanie UTF-8 z BOM, separator średnik (;). Bezproblemowe otwarcie w polskim Excelu.",
+                                    text = "Polskie kodowanie UTF-8 z BOM, separator średnik (;). Bezproblemowe otwarcie w programie Excel.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -156,8 +206,8 @@ fun SettingsScreen(
                         OutlinedButton(
                             onClick = viewModel::exportCsv,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, GriffinRed)
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, GriffinRed.copy(alpha = 0.6f))
                         ) {
                             Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = GriffinRed)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -176,7 +226,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Czysty format strukturalny dla integracji i zaawansowanych.",
+                                    text = "Czysty format strukturalny dla integracji i zaawansowanych kopii.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -186,19 +236,20 @@ fun SettingsScreen(
                         OutlinedButton(
                             onClick = viewModel::exportJson,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                         ) {
                             Icon(imageVector = Icons.Default.FileDownload, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("POBIERZ JSON", fontWeight = FontWeight.Bold)
+                            Text("POBIERZ JSON", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
 
-            // Section 2: BACKUP & RESTORE
+            // Section 3: BACKUP & RESTORE
             item {
-                SettingsSectionHeader(title = "KOPIA ZAPASOWA I PRZYWRACANIE")
+                FormSectionHeader(title = "KOPIA ZAPASOWA I PRZYWRACANIE")
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -217,7 +268,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -225,7 +276,8 @@ fun SettingsScreen(
                             OutlinedButton(
                                 onClick = viewModel::exportJson,
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                             ) {
                                 Icon(imageVector = Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -234,7 +286,8 @@ fun SettingsScreen(
                             OutlinedButton(
                                 onClick = { restoreFilePickerLauncher.launch(arrayOf("application/json", "text/*")) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                             ) {
                                 Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -245,60 +298,9 @@ fun SettingsScreen(
                 }
             }
 
-            // Section 3: THEME
-            item {
-                SettingsSectionHeader(title = "MOTYW APLIKACJI")
-                TechnicalCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = GriffinRed)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Wybór stylu wizualnego",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = isDarkTheme,
-                                onClick = { onThemeChanged(true) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Ciemny (Grafitowy — domyślny)",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = !isDarkTheme,
-                                onClick = { onThemeChanged(false) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Jasny (Technical Light)",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-
             // Section 4: PRIVACY & ABOUT
             item {
-                SettingsSectionHeader(title = "O APLIKACJI I PRYWATNOŚĆ")
+                FormSectionHeader(title = "O APLIKACJI I PRYWATNOŚĆ")
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
@@ -316,19 +318,23 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "RailLog nie łączy się z serwerami korporacji, nie wymaga logowania, nie wyświetla reklam ani nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego telefonu.",
+                            text = "RailLog nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Wersja: RailLog v1.1.0",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Wersja:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            StatusBadge(text = "RailLog 2.0.0", color = GriffinRed)
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Twórca: Mateusz Szerszeń",
+                            text = "Autor: Mateusz Szerszeń",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -396,13 +402,46 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 6.dp)
-    )
+private fun ThemeOptionRow(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) GriffinRed.copy(alpha = 0.08f) else Color.Transparent,
+        border = if (selected) BorderStroke(1.dp, GriffinRed.copy(alpha = 0.5f)) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = selected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = GriffinRed)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 private fun shareContent(context: Context, content: String, mimeType: String, filename: String) {
@@ -426,7 +465,6 @@ private fun shareContent(context: Context, content: String, mimeType: String, fi
 
         context.startActivity(Intent.createChooser(intent, "Udostępnij lub zapisz plik"))
     } catch (e: Exception) {
-        // Fallback plain text share if FileProvider fails
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, content)

@@ -2,6 +2,7 @@ package pl.raillog.app.presentation.dashboard
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -40,8 +42,11 @@ import androidx.compose.ui.unit.sp
 import pl.raillog.app.R
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.SignalGreen
+import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
 import java.time.LocalDate
@@ -69,8 +74,8 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            TechnicalDashboardHeader(formattedToday = formattedToday)
+            Spacer(modifier = Modifier.height(4.dp))
+            PremiumDashboardHeader(formattedToday = formattedToday)
         }
 
         // Monthly KPI Summary Widgets
@@ -79,27 +84,31 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                KpiWidget(
-                    title = "Służby w tym m-cu",
+                DashboardKpiCard(
+                    title = "SŁUŻBY W TYM M-CU",
                     value = "${statistics.currentMonthDuties}",
+                    unit = if (statistics.currentMonthDuties == 1) "służba" else "służb",
                     icon = Icons.Default.DirectionsRailway,
                     accentColor = GriffinRed,
                     modifier = Modifier.weight(1f)
                 )
+
                 val hours = statistics.currentMonthOvertimeMinutes / 60
                 val mins = statistics.currentMonthOvertimeMinutes % 60
-                val overtimeStr = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
-                KpiWidget(
-                    title = "Nadgodziny",
-                    value = if (statistics.currentMonthOvertimeMinutes > 0) overtimeStr else "0 min",
+                val overtimeValue = if (hours > 0) "${hours}h ${mins}m" else "${mins} min"
+
+                DashboardKpiCard(
+                    title = "NADGODZINY",
+                    value = if (statistics.currentMonthOvertimeMinutes > 0) overtimeValue else "0 min",
+                    unit = if (statistics.currentMonthOvertimeMinutes > 0) "bilans m-ca" else "brak nadgodzin",
                     icon = Icons.Default.Schedule,
-                    accentColor = PantographAmber,
+                    accentColor = if (statistics.currentMonthOvertimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
 
-        // Primary Hero CTA Button
+        // Primary Hero CTA
         item {
             RailLogHeroButton(
                 text = "+ NOWA SŁUŻBA",
@@ -112,12 +121,7 @@ fun DashboardScreen(
         if (recentVehicles.isNotEmpty()) {
             item {
                 Column {
-                    Text(
-                        text = "OSTATNIO PROWADZONE POJAZDY",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    FormSectionHeader(title = "OSTATNIO PROWADZONE POJAZDY")
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(recentVehicles) { vehicle ->
                             QuickChip(
@@ -133,19 +137,14 @@ fun DashboardScreen(
 
         // Latest Duty Card or Empty State
         item {
-            Text(
-                text = "OSTATNIA ZAREJESTROWANA SŁUŻBA",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            FormSectionHeader(title = "OSTATNIA ZAREJESTROWANA SŁUŻBA")
             if (latestDuty != null) {
-                LastDutyCard(
+                LatestDutyCard(
                     duty = latestDuty!!,
                     onClick = { onNavigateToDutyDetail(latestDuty!!.id) }
                 )
             } else {
-                EmptyDutyCard(onStartClick = { onNavigateToNewDuty(null) })
+                DashboardEmptyState(onStartClick = { onNavigateToNewDuty(null) })
             }
         }
 
@@ -156,9 +155,9 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun TechnicalDashboardHeader(formattedToday: String) {
+private fun PremiumDashboardHeader(formattedToday: String) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
@@ -166,29 +165,31 @@ private fun TechnicalDashboardHeader(formattedToday: String) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(3.dp),
                         color = GriffinRed,
-                        modifier = Modifier.size(width = 4.dp, height = 20.dp)
+                        modifier = Modifier.size(width = 4.dp, height = 18.dp)
                     ) {}
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "RAILLOG",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
+                            letterSpacing = 1.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    StatusBadge(text = "2.0", color = GriffinRed)
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = formattedToday,
                     style = MaterialTheme.typography.bodyMedium,
@@ -196,18 +197,16 @@ private fun TechnicalDashboardHeader(formattedToday: String) {
                 )
             }
 
-            // Small friendly diesel locomotive illustration: subtle, decorative, premium
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                modifier = Modifier
-                    .size(width = 62.dp, height = 54.dp)
+                modifier = Modifier.size(width = 64.dp, height = 52.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.img_diesel_header),
                     contentDescription = "Lokomotywa RailLog",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
                 )
             }
         }
@@ -215,15 +214,16 @@ private fun TechnicalDashboardHeader(formattedToday: String) {
 }
 
 @Composable
-private fun KpiWidget(
+private fun DashboardKpiCard(
     title: String,
     value: String,
+    unit: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
         modifier = modifier
@@ -236,31 +236,41 @@ private fun KpiWidget(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.8.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 22.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun LastDutyCard(
+private fun LatestDutyCard(
     duty: Duty,
     onClick: () -> Unit
 ) {
@@ -268,11 +278,11 @@ private fun LastDutyCard(
     val formattedDate = duty.date.format(polishDateFormatter)
 
     TechnicalCard(
-        accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) GriffinRed else null,
+        accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) PantographAmber else null,
         onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Header: Date and Overtime badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -281,27 +291,19 @@ private fun LastDutyCard(
             ) {
                 Text(
                     text = formattedDate,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = GriffinRed.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, GriffinRed.copy(alpha = 0.5f))
-                    ) {
-                        Text(
-                            text = duty.displayOvertime,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = GriffinRed,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                    StatusBadge(
+                        text = duty.displayOvertime,
+                        color = PantographAmber
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Main Route
             Text(
@@ -310,11 +312,18 @@ private fun LastDutyCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Vehicles row: all vehicles equal weight
+            // Vehicles per legs / summary
             if (duty.displayVehiclesSummary != "—") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Train,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (duty.vehicleTypes.size > 1) "Pojazdy: " else "Pojazd: ",
                         style = MaterialTheme.typography.bodySmall,
@@ -359,15 +368,15 @@ private fun LastDutyCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Zobacz szczegóły",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "Paszport służby",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = GriffinRed
                 )
                 Icon(
@@ -382,7 +391,7 @@ private fun LastDutyCard(
 }
 
 @Composable
-private fun EmptyDutyCard(onStartClick: () -> Unit) {
+private fun DashboardEmptyState(onStartClick: () -> Unit) {
     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -393,12 +402,12 @@ private fun EmptyDutyCard(onStartClick: () -> Unit) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_locomotive),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.size(width = 120.dp, height = 50.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                modifier = Modifier.size(width = 110.dp, height = 46.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
-                text = "Brak zapisanych służb",
+                text = "Brak zarejestrowanych służb",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -412,7 +421,7 @@ private fun EmptyDutyCard(onStartClick: () -> Unit) {
             RailLogHeroButton(
                 text = "ROZPOCZNIJ DZIENNIK",
                 onClick = onStartClick,
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
         }
     }

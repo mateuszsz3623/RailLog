@@ -1,6 +1,10 @@
 package pl.raillog.app.presentation.dutyform
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,6 +29,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsRailway
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapVert
@@ -66,8 +75,11 @@ import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
 import pl.raillog.app.core.designsystem.SignalGreen
+import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
+import pl.raillog.app.core.designsystem.component.RailLogSecondaryButton
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import java.time.Instant
 import java.time.LocalDate
@@ -88,6 +100,7 @@ fun DutyFormScreen(
     val recentRoutes by viewModel.recentRoutes.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var notesExpanded by remember { mutableStateOf(state.notes.isNotBlank() || state.additionalNotes.isNotBlank()) }
 
     LaunchedEffect(Unit) {
         viewModel.saveSuccessEvent.collect {
@@ -122,7 +135,8 @@ fun DutyFormScreen(
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                modifier = Modifier.navigationBarsPadding().imePadding()
             ) {
                 Box(
                     modifier = Modifier
@@ -131,7 +145,8 @@ fun DutyFormScreen(
                 ) {
                     RailLogHeroButton(
                         text = if (state.dutyId == 0L) "ZAPISZ SŁUŻBĘ" else "ZAPISZ ZMIANY",
-                        onClick = viewModel::saveDuty
+                        onClick = viewModel::saveDuty,
+                        enabled = !state.isSaving
                     )
                 }
             }
@@ -146,8 +161,8 @@ fun DutyFormScreen(
         ) {
             // Section 1: DATE
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                FormSectionTitle(title = "DATA SŁUŻBY")
+                Spacer(modifier = Modifier.height(2.dp))
+                FormSectionHeader(title = "DATA SŁUŻBY")
                 TechnicalCard(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { showDatePicker = true }
@@ -191,9 +206,66 @@ fun DutyFormScreen(
                 }
             }
 
-            // Section 2: SHIFT TIMES (CZAS ROZPOCZĘCIA I ZAKOŃCZENIA)
+            // Section 2: MULTI-SEGMENT ROUTE WITH LEGS (ODCINKI TRASY & POJAZDY NA ODCINKACH)
             item {
-                FormSectionTitle(title = "GODZINY SŁUŻBY (OPCJONALNIE)")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FormSectionHeader(title = "ODCINKI TRASY (${state.legs.size})")
+                    if (recentRoutes.isNotEmpty() && state.legs.size == 1 && state.legs[0].startStation.isBlank()) {
+                        Text(
+                            text = "Szablon z historii",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GriffinRed
+                        )
+                    }
+                }
+
+                // Quick route chips for first leg if blank
+                if (recentRoutes.isNotEmpty() && state.legs.size == 1 && state.legs[0].startStation.isBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(recentRoutes) { route ->
+                            QuickChip(
+                                text = route.joinToString(" → "),
+                                onClick = { viewModel.applyRouteToFirstLeg(route) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    state.legs.forEachIndexed { index, leg ->
+                        LegInputCard(
+                            index = index,
+                            leg = leg,
+                            canDelete = state.legs.size > 1,
+                            frequentSeries = frequentSeries,
+                            recentVehicles = recentVehicles,
+                            onUpdate = { updated -> viewModel.updateLeg(index, updated) },
+                            onDelete = { viewModel.removeLeg(index) },
+                            onSwap = { viewModel.swapLegStations(index) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                RailLogSecondaryButton(
+                    text = "+ DODAJ KOLEJNY ODCINEK",
+                    onClick = viewModel::addLeg,
+                    icon = Icons.Default.Add,
+                    contentColor = GriffinRed,
+                    borderColor = GriffinRed.copy(alpha = 0.6f)
+                )
+            }
+
+            // Section 3: SHIFT TIMES (GODZINY SŁUŻBY)
+            item {
+                FormSectionHeader(title = "GODZINY SŁUŻBY (OPCJONALNIE)")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -223,14 +295,14 @@ fun DutyFormScreen(
                 if (state.displayDuration != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Schedule,
@@ -249,145 +321,11 @@ fun DutyFormScreen(
                 }
             }
 
-            // Section 3: PRIMARY VEHICLE
+            // Section 4: OVERTIME (NADGODZINY)
             item {
-                FormSectionTitle(title = "GŁÓWNY POJAZD TRAKCYJNY")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedTextField(
-                        value = state.vehicleSeries,
-                        onValueChange = viewModel::onVehicleSeriesChanged,
-                        label = { Text("Seria (np. EU200)") },
-                        modifier = Modifier.weight(1.2f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Characters,
-                            imeAction = ImeAction.Next
-                        ),
-                        colors = customTextFieldColors()
-                    )
-                    OutlinedTextField(
-                        value = state.vehicleNumber,
-                        onValueChange = viewModel::onVehicleNumberChanged,
-                        label = { Text("Numer (np. 005)") },
-                        modifier = Modifier.weight(0.8f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Characters,
-                            imeAction = ImeAction.Next
-                        ),
-                        colors = customTextFieldColors()
-                    )
-                }
-
-                // Frequent Series Chips
-                if (frequentSeries.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Najczęściej używane serie:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(frequentSeries) { series ->
-                            QuickChip(
-                                text = series,
-                                isSelected = state.vehicleSeries.equals(series, ignoreCase = true),
-                                onClick = { viewModel.onVehicleSeriesChanged(series) }
-                            )
-                        }
-                    }
-                }
-
-                // Recent Vehicles Chips
-                if (recentVehicles.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Ostatnio używane pojazdy:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(recentVehicles) { vehicle ->
-                            QuickChip(
-                                text = vehicle,
-                                leadingIcon = Icons.Default.Train,
-                                onClick = { viewModel.applyVehicle(vehicle) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Section 4: MULTI-SEGMENT ROUTE (ODCINKI SŁUŻBY)
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FormSectionTitle(title = "ODCINKI SŁUŻBY (${state.legs.size})")
-                    if (recentRoutes.isNotEmpty() && state.legs.size == 1 && state.legs[0].startStation.isBlank()) {
-                        Text(
-                            text = "Szablon z historii",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = GriffinRed
-                        )
-                    }
-                }
-
-                // Quick route chips for first leg
-                if (recentRoutes.isNotEmpty() && state.legs.size == 1 && state.legs[0].startStation.isBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(recentRoutes) { route ->
-                            QuickChip(
-                                text = route.joinToString(" → "),
-                                onClick = { viewModel.applyRouteToFirstLeg(route) }
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    state.legs.forEachIndexed { index, leg ->
-                        LegInputCard(
-                            index = index,
-                            leg = leg,
-                            canDelete = state.legs.size > 1,
-                            onUpdate = { updated -> viewModel.updateLeg(index, updated) },
-                            onDelete = { viewModel.removeLeg(index) },
-                            onSwap = { viewModel.swapLegStations(index) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedButton(
-                    onClick = viewModel::addLeg,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GriffinRed),
-                    border = BorderStroke(1.dp, GriffinRed)
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("+ DODAJ KOLEJNY ODCINEK", fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Section 5: OVERTIME (NADGODZINY)
-            item {
-                FormSectionTitle(title = "NADGODZINY (DOKŁADNY CZAS)")
+                FormSectionHeader(title = "NADGODZINY (DOKŁADNY CZAS)")
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        // Switch for "Cała służba w nadgodzinach"
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -396,7 +334,7 @@ fun DutyFormScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Cała służba w nadgodzinach",
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
@@ -419,7 +357,11 @@ fun DutyFormScreen(
                             )
                         }
 
-                        AnimatedVisibility(visible = !state.isWholeDutyOvertime) {
+                        AnimatedVisibility(
+                            visible = !state.isWholeDutyOvertime,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
                             Column {
                                 Spacer(modifier = Modifier.height(14.dp))
                                 Text(
@@ -434,7 +376,7 @@ fun DutyFormScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Hours input
+                                    // Hours
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
@@ -463,7 +405,7 @@ fun DutyFormScreen(
                                         }
                                     }
 
-                                    // Minutes input
+                                    // Minutes
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
@@ -516,7 +458,7 @@ fun DutyFormScreen(
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace
                                         ),
-                                        color = GriffinRed
+                                        color = PantographAmber
                                     )
                                 }
                             }
@@ -525,36 +467,75 @@ fun DutyFormScreen(
                 }
             }
 
-            // Section 6: NOTES
+            // Section 5: NOTES & PRIVATE NOTES (COLLAPSIBLE / CLEAN)
             item {
-                FormSectionTitle(title = "UWAGI ZE SZLAKU")
-                OutlinedTextField(
-                    value = state.notes,
-                    onValueChange = viewModel::onNotesChanged,
-                    placeholder = { Text("np. Opóźnienie 8 min, spokojny przejazd, defekt...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp),
-                    colors = customTextFieldColors()
-                )
+                TechnicalCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { notesExpanded = !notesExpanded }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "NOTATKI I UWAGI ZE SZLAKU",
+                                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (state.notes.isNotBlank() || state.additionalNotes.isNotBlank()) "Wprowadzono notatki" else "Opcjonalne uwagi i prywatne zapiski",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = if (notesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = notesExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(top = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = state.notes,
+                            onValueChange = viewModel::onNotesChanged,
+                            label = { Text("Uwagi ze szlaku") },
+                            placeholder = { Text("np. Opóźnienie 8 min, spokojny przejazd, defekt...") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(95.dp),
+                            colors = customTextFieldColors()
+                        )
+
+                        OutlinedTextField(
+                            value = state.additionalNotes,
+                            onValueChange = viewModel::onAdditionalNotesChanged,
+                            label = { Text("Dodatkowe prywatne notatki") },
+                            placeholder = { Text("Prywatne zapiski, przypomnienia...") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp),
+                            colors = customTextFieldColors()
+                        )
+                    }
+                }
             }
 
-            // Section 7: ADDITIONAL PRIVATE NOTES
             item {
-                FormSectionTitle(title = "DODATKOWE PRYWATNE NOTATKI")
-                OutlinedTextField(
-                    value = state.additionalNotes,
-                    onValueChange = viewModel::onAdditionalNotesChanged,
-                    placeholder = { Text("Prywatne zapiski, przypomnienia...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    colors = customTextFieldColors()
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
     }
@@ -581,7 +562,7 @@ fun DutyFormScreen(
                         showDatePicker = false
                     }
                 ) {
-                    Text("WYBIERZ", color = GriffinRed)
+                    Text("WYBIERZ", color = GriffinRed, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -600,6 +581,8 @@ private fun LegInputCard(
     index: Int,
     leg: LegFormState,
     canDelete: Boolean,
+    frequentSeries: List<String>,
+    recentVehicles: List<String>,
     onUpdate: (LegFormState) -> Unit,
     onDelete: () -> Unit,
     onSwap: () -> Unit
@@ -609,19 +592,15 @@ private fun LegInputCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            // Header: Leg label and delete button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "ODCINEK ${index + 1}",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    ),
-                    color = GriffinRed
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusBadge(text = "ODCINEK ${index + 1}", color = GriffinRed)
+                }
                 if (canDelete) {
                     IconButton(
                         onClick = onDelete,
@@ -637,7 +616,7 @@ private fun LegInputCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Start & End Stations
             Row(
@@ -680,7 +659,7 @@ private fun LegInputCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Train Number & Optional Leg Vehicle
+            // Train Number and Vehicle on this leg
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -688,7 +667,8 @@ private fun LegInputCard(
                 OutlinedTextField(
                     value = leg.trainNumber,
                     onValueChange = { onUpdate(leg.copy(trainNumber = it.uppercase())) },
-                    label = { Text("Nr pociągu (np. 3560)") },
+                    label = { Text("Nr pociągu") },
+                    placeholder = { Text("np. 3560") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
@@ -698,32 +678,53 @@ private fun LegInputCard(
                 OutlinedTextField(
                     value = leg.vehicle,
                     onValueChange = { onUpdate(leg.copy(vehicle = it)) },
-                    label = { Text("Pojazd (opcjonalny)") },
-                    placeholder = { Text("np. EU160-26") },
-                    modifier = Modifier.weight(1f),
+                    label = { Text("Pojazd odcinka") },
+                    placeholder = { Text("np. EU160-025") },
+                    modifier = Modifier.weight(1.2f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done),
                     colors = customTextFieldColors()
                 )
+            }
+
+            // Quick suggestion chips for vehicle on this leg
+            if (frequentSeries.isNotEmpty() || recentVehicles.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Show recent exact vehicles if available
+                    items(recentVehicles.take(3)) { vehicle ->
+                        QuickChip(
+                            text = vehicle,
+                            leadingIcon = Icons.Default.Train,
+                            isSelected = leg.vehicle.equals(vehicle, ignoreCase = true),
+                            onClick = { onUpdate(leg.copy(vehicle = vehicle)) }
+                        )
+                    }
+                    // Show frequent series
+                    items(frequentSeries.take(4)) { series ->
+                        QuickChip(
+                            text = series,
+                            isSelected = leg.vehicle.startsWith(series, ignoreCase = true),
+                            onClick = {
+                                val currentNumber = leg.vehicle.substringAfter("-", "").ifBlank { null }
+                                val newVeh = if (currentNumber != null) "$series-$currentNumber" else series
+                                onUpdate(leg.copy(vehicle = newVeh))
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun FormSectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 6.dp)
-    )
-}
-
-@Composable
 private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
     focusedContainerColor = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface
 )

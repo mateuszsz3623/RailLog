@@ -1,30 +1,46 @@
 package pl.raillog.app.presentation.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -34,6 +50,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
+import pl.raillog.app.core.designsystem.AppThemeMode
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.domain.repository.DutyRepository
 import pl.raillog.app.presentation.calendar.CalendarScreen
@@ -53,7 +70,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-sealed class BottomNavItem(val screen: Screen, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+sealed class BottomNavItem(val screen: Screen, val title: String, val icon: ImageVector) {
     object Start : BottomNavItem(Screen.Dashboard, "Start", Icons.Default.Home)
     object Duties : BottomNavItem(Screen.History, "Służby", Icons.Default.Train)
     object Stats : BottomNavItem(Screen.Statistics, "Statystyki", Icons.Default.BarChart)
@@ -63,8 +80,8 @@ sealed class BottomNavItem(val screen: Screen, val title: String, val icon: andr
 @Composable
 fun RailLogNavHost(
     repository: DutyRepository,
-    isDarkTheme: Boolean,
-    onThemeChanged: (Boolean) -> Unit
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit
 ) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -92,43 +109,42 @@ fun RailLogNavHost(
         bottomBar = {
             AnimatedVisibility(
                 visible = showBottomBar,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                 ) {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentRoute == item.screen.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                if (currentRoute != item.screen.route) {
-                                    navController.navigate(item.screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        bottomNavItems.forEach { item ->
+                            val selected = currentRoute == item.screen.route
+                            CompactNavItem(
+                                item = item,
+                                selected = selected,
+                                onClick = {
+                                    if (currentRoute != item.screen.route) {
+                                        navController.navigate(item.screen.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
                                     }
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.title
-                                )
-                            },
-                            label = { Text(text = item.title) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GriffinRed,
-                                selectedTextColor = GriffinRed,
-                                indicatorColor = GriffinRed.copy(alpha = 0.15f),
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.weight(1f)
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -184,8 +200,8 @@ fun RailLogNavHost(
                 val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(repository))
                 SettingsScreen(
                     viewModel = vm,
-                    isDarkTheme = isDarkTheme,
-                    onThemeChanged = onThemeChanged
+                    themeMode = themeMode,
+                    onThemeModeChanged = onThemeModeChanged
                 )
             }
 
@@ -260,5 +276,49 @@ fun RailLogNavHost(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CompactNavItem(
+    item: BottomNavItem,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeColor = GriffinRed
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = modifier
+            .height(56.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = if (selected) activeColor.copy(alpha = 0.12f) else Color.Transparent,
+            modifier = Modifier.size(width = 44.dp, height = 28.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = if (selected) activeColor else inactiveColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = item.title,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 11.sp
+            ),
+            color = if (selected) activeColor else inactiveColor
+        )
     }
 }

@@ -30,8 +30,8 @@ data class LegFormState(
 data class DutyFormState(
     val dutyId: Long = 0L,
     val date: LocalDate = LocalDate.now(),
-    val vehicleSeries: String = "",
-    val vehicleNumber: String = "",
+    val legacyVehicleSeries: String? = null,
+    val legacyVehicleNumber: String? = null,
     val startTime: String = "",
     val endTime: String = "",
     val legs: List<LegFormState> = listOf(LegFormState()),
@@ -65,14 +65,23 @@ class DutyFormViewModel(
     private val prefilledVehicle: String? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DutyFormState(dutyId = initialDutyId))
+    private val _uiState = MutableStateFlow(
+        DutyFormState(
+            dutyId = initialDutyId,
+            legs = if (!prefilledVehicle.isNullOrBlank()) {
+                listOf(LegFormState(vehicle = prefilledVehicle))
+            } else {
+                listOf(LegFormState())
+            }
+        )
+    )
     val uiState: StateFlow<DutyFormState> = _uiState.asStateFlow()
 
     private val _saveSuccessEvent = MutableSharedFlow<Unit>()
     val saveSuccessEvent: SharedFlow<Unit> = _saveSuccessEvent.asSharedFlow()
 
     val frequentSeries: StateFlow<List<String>> = repository.getFrequentVehicleSeries()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("EU200", "EU160", "EP09", "ED250"))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("EU160", "EU200", "EP09", "ED250", "ET42", "EN57"))
 
     val recentVehicles: StateFlow<List<String>> = repository.getRecentVehicles()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -83,8 +92,6 @@ class DutyFormViewModel(
     init {
         if (initialDutyId > 0L) {
             loadExistingDuty(initialDutyId)
-        } else if (!prefilledVehicle.isNullOrBlank()) {
-            applyVehicle(prefilledVehicle)
         }
     }
 
@@ -93,17 +100,23 @@ class DutyFormViewModel(
             val duty = repository.getDutyByIdDirect(id) ?: return@launch
             val formLegs = if (duty.legs.isNotEmpty()) {
                 duty.legs.map { leg ->
+                    val legVehicle = if (!leg.vehicleSeries.isNullOrBlank() || !leg.vehicleNumber.isNullOrBlank()) {
+                        leg.displayVehicle
+                    } else if (duty.legs.size == 1 && (!duty.vehicleSeries.isNullOrBlank() || !duty.vehicleNumber.isNullOrBlank())) {
+                        VehicleStringParser.format(duty.vehicleSeries, duty.vehicleNumber)
+                    } else {
+                        ""
+                    }
                     LegFormState(
                         startStation = leg.startStation,
                         endStation = leg.endStation,
                         trainNumber = leg.trainNumber,
-                        vehicle = if (!leg.vehicleSeries.isNullOrBlank() || !leg.vehicleNumber.isNullOrBlank()) {
-                            leg.displayVehicle
-                        } else ""
+                        vehicle = if (legVehicle != "—") legVehicle else ""
                     )
                 }
             } else {
-                listOf(LegFormState())
+                val legacyVeh = VehicleStringParser.format(duty.vehicleSeries, duty.vehicleNumber)
+                listOf(LegFormState(vehicle = if (legacyVeh != "—") legacyVeh else ""))
             }
 
             val otTotal = duty.overtimeMinutes
@@ -114,8 +127,8 @@ class DutyFormViewModel(
                 it.copy(
                     dutyId = duty.id,
                     date = duty.date,
-                    vehicleSeries = duty.vehicleSeries ?: "",
-                    vehicleNumber = duty.vehicleNumber ?: "",
+                    legacyVehicleSeries = duty.vehicleSeries,
+                    legacyVehicleNumber = duty.vehicleNumber,
                     startTime = duty.startTime ?: "",
                     endTime = duty.endTime ?: "",
                     legs = formLegs,
@@ -133,34 +146,6 @@ class DutyFormViewModel(
         _uiState.update { it.copy(date = newDate) }
     }
 
-    fun onVehicleSeriesChanged(input: String) {
-        val (series, number) = VehicleStringParser.normalizeSeriesAndNumber(input, null)
-        if (number.isNotEmpty()) {
-            _uiState.update {
-                it.copy(
-                    vehicleSeries = series,
-                    vehicleNumber = number
-                )
-            }
-        } else {
-            _uiState.update { it.copy(vehicleSeries = series) }
-        }
-    }
-
-    fun onVehicleNumberChanged(number: String) {
-        _uiState.update { it.copy(vehicleNumber = number.trim()) }
-    }
-
-    fun applyVehicle(formattedVehicle: String) {
-        val (series, number) = VehicleStringParser.normalizeSeriesAndNumber(formattedVehicle, null)
-        _uiState.update {
-            it.copy(
-                vehicleSeries = series,
-                vehicleNumber = number
-            )
-        }
-    }
-
     fun onStartTimeChanged(time: String) {
         _uiState.update { it.copy(startTime = time.trim()) }
     }
@@ -173,8 +158,13 @@ class DutyFormViewModel(
 
     fun addLeg() {
         _uiState.update { current ->
-            val prevEnd = current.legs.lastOrNull()?.endStation?.trim() ?: ""
-            val newLeg = LegFormState(startStation = prevEnd)
+            val prevLeg = current.legs.lastOrNull()
+            val prevEnd = prevLeg?.endStation?.trim() ?: ""
+            // Sensible ergonomics: next leg starts at previous end station, optionally keeps vehicle
+            val newLeg = LegFormState(
+                startStation = prevEnd,
+                vehicle = prevLeg?.vehicle?.trim() ?: ""
+            )
             current.copy(legs = current.legs + newLeg)
         }
     }
@@ -287,13 +277,9 @@ class DutyFormViewModel(
 
         viewModelScope.launch {
             val domainLegs = current.legs
-                .filter { it.startStation.isNotBlank() || it.endStation.isNotBlank() || it.trainNumber.isNotBlank() }
+                .filter { it.startStation.isNotBlank() || it.endStation.isNotBlank() || it.trainNumber.isNotBlank() || it.vehicle.isNotBlank() }
                 .map { leg ->
-                    val (vSeries, vNumber) = if (leg.vehicle.isNotBlank()) {
-                        VehicleStringParser.normalizeSeriesAndNumber(leg.vehicle, null)
-                    } else {
-                        VehicleStringParser.normalizeSeriesAndNumber(current.vehicleSeries, current.vehicleNumber)
-                    }
+                    val (vSeries, vNumber) = VehicleStringParser.normalizeSeriesAndNumber(leg.vehicle, null)
                     DutyLeg(
                         startStation = leg.startStation.trim(),
                         endStation = leg.endStation.trim(),
@@ -303,19 +289,19 @@ class DutyFormViewModel(
                     )
                 }
 
-            val (primarySeries, primaryNumber) = VehicleStringParser.normalizeSeriesAndNumber(current.vehicleSeries, current.vehicleNumber)
-            val finalSeries = primarySeries.ifBlank {
-                domainLegs.firstOrNull { !it.vehicleSeries.isNullOrBlank() }?.vehicleSeries
-            }
-            val finalNumber = primaryNumber.ifBlank {
-                domainLegs.firstOrNull { !it.vehicleNumber.isNullOrBlank() }?.vehicleNumber
-            }
+            // Derive entity-level fallback vehicle series/number from the first leg with vehicle,
+            // or retain existing legacy series/number so historical integrity is maintained
+            val firstLegWithVehicle = domainLegs.firstOrNull { !it.vehicleSeries.isNullOrBlank() }
+            val finalSeries = firstLegWithVehicle?.vehicleSeries
+                ?: current.legacyVehicleSeries?.ifBlank { null }
+            val finalNumber = firstLegWithVehicle?.vehicleNumber
+                ?: current.legacyVehicleNumber?.ifBlank { null }
 
             val duty = Duty(
                 id = current.dutyId,
                 date = current.date,
-                vehicleSeries = primarySeries,
-                vehicleNumber = primaryNumber,
+                vehicleSeries = finalSeries,
+                vehicleNumber = finalNumber,
                 startTime = current.startTime.ifBlank { null },
                 endTime = current.endTime.ifBlank { null },
                 dutyDurationMinutes = current.calculatedDurationMinutes ?: 0,

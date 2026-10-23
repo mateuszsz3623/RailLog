@@ -38,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.SeriesStatItem
 import java.time.YearMonth
@@ -108,7 +111,7 @@ fun StatisticsScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "WYBRANY OKRES",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
@@ -182,7 +185,7 @@ fun StatisticsScreen(
                     StatMetricCard(
                         title = "Suma nadgodzin",
                         value = if (stats.totalOvertimeMinutes > 0) overtimeStr else "0 min",
-                        accentColor = PantographAmber,
+                        accentColor = if (stats.totalOvertimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant,
                         icon = Icons.Default.Schedule,
                         modifier = Modifier.weight(1f)
                     )
@@ -192,12 +195,7 @@ fun StatisticsScreen(
             // Section: Vehicle Series Distribution in period
             if (stats.seriesRanking.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "UDZIAŁ SERII POJAZDÓW W OKRESIE",
-                        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    FormSectionHeader(title = "UDZIAŁ SERII POJAZDÓW W OKRESIE")
                     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -214,12 +212,7 @@ fun StatisticsScreen(
             // Section: Top Routes in period
             if (stats.topRoutes.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "NAJCZĘSTSZE TRASY W OKRESIE",
-                        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    FormSectionHeader(title = "NAJCZĘSTSZE TRASY W OKRESIE")
                     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -255,12 +248,7 @@ fun StatisticsScreen(
             // Section: Monthly Breakdown History
             if (stats.monthlyHistory.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "HISTORIA ZESTAWIEŃ MIESIĘCZNYCH",
-                        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    FormSectionHeader(title = "HISTORIA ZESTAWIEŃ MIESIĘCZNYCH")
                     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -272,8 +260,9 @@ fun StatisticsScreen(
                                 val ot = if (h > 0) "${h}h ${min}m" else "${min}m"
 
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
@@ -294,7 +283,7 @@ fun StatisticsScreen(
                                     ) {
                                         Text(
                                             text = m.displayMonth,
-                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
@@ -303,7 +292,7 @@ fun StatisticsScreen(
                                                 fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold
                                             ),
-                                            color = GriffinRed
+                                            color = if (m.overtimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -340,21 +329,24 @@ private fun StatMetricCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.8.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 24.sp,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 ),
@@ -392,7 +384,8 @@ private fun SeriesProgressRow(item: SeriesStatItem) {
             progress = { item.percentage },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp),
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
             color = GriffinRed,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -401,6 +394,8 @@ private fun SeriesProgressRow(item: SeriesStatItem) {
 
 @Composable
 private fun customChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = GriffinRed.copy(alpha = 0.2f),
-    selectedLabelColor = GriffinRed
+    selectedContainerColor = GriffinRed.copy(alpha = 0.12f),
+    selectedLabelColor = GriffinRed,
+    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )

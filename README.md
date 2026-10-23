@@ -1,5 +1,5 @@
 # RAILLOG 🚆
-### Nowoczesny Dziennik Służb Maszynisty na system Android (v1.1.0)
+### Nowoczesny Dziennik Służb Maszynisty na system Android (v2.0.0)
 
 [![Pobierz najnowsze APK](https://img.shields.io/badge/Pobierz_APK-RailLog_Najnowsza_Wersja-brightgreen?style=for-the-badge&logo=android)](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)
 [![GitHub Release](https://img.shields.io/github/v/release/mateuszsz3623/RailLog?style=for-the-badge&color=red)](https://github.com/mateuszsz3623/RailLog/releases)

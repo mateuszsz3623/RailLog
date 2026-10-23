@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
 import pl.raillog.app.domain.repository.DutyRepository
@@ -124,7 +126,7 @@ fun CalendarScreen(
                 daysOfWeek.forEach { day ->
                     Text(
                         text = day,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -148,13 +150,7 @@ fun CalendarScreen(
             val selectedDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
             val formattedSelected = selectedDate.format(selectedDateFormatter).replaceFirstChar { it.uppercase() }
 
-            Text(
-                text = formattedSelected.uppercase(),
-                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
+            FormSectionHeader(title = formattedSelected.uppercase())
 
             if (dutiesOnSelectedDate.isEmpty()) {
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
@@ -173,43 +169,51 @@ fun CalendarScreen(
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(dutiesOnSelectedDate, key = { it.id }) { duty ->
                         TechnicalCard(
-                            accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) GriffinRed else null,
+                            accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) PantographAmber else null,
                             onClick = { onNavigateToDutyDetail(duty.id) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = duty.displayVehicle,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        text = duty.displayRoute,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
                                     )
                                     if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
+                                        StatusBadge(text = duty.displayOvertime, color = PantographAmber)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (duty.displayVehicle != "—") {
                                         Text(
-                                            text = "⏱ " + duty.displayOvertime,
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                            color = GriffinRed
+                                            text = "Pojazd: ${duty.displayVehicle}",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (duty.displayTrains != "—") {
+                                        Text(
+                                            text = " • Poc. ${duty.displayTrains}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = duty.displayRoute,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
                             }
                         }
                     }
@@ -228,10 +232,9 @@ private fun MonthGrid(
 ) {
     val firstDayOfMonth = yearMonth.atDay(1)
     val daysInMonth = yearMonth.lengthOfMonth()
-    // Day of week in Poland: Monday is 1, Sunday is 7
-    val startDayOfWeek = firstDayOfMonth.dayOfWeek.value // 1..7
+    val startDayOfWeek = firstDayOfMonth.dayOfWeek.value // 1..7 (Pn..Nd)
 
-    val totalCells = 42 // 6 weeks of 7 days
+    val totalCells = 42
     val dates = (1..totalCells).map { cellIndex ->
         val dayNumber = cellIndex - (startDayOfWeek - 1)
         if (dayNumber in 1..daysInMonth) yearMonth.atDay(dayNumber) else null
@@ -254,9 +257,9 @@ private fun MonthGrid(
                             val hasOvertime = dayDuties.any { it.overtimeMinutes > 0 || it.isWholeDutyOvertime }
 
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) GriffinRed.copy(alpha = 0.25f) else Color.Transparent,
-                                border = if (isSelected) BorderStroke(1.dp, GriffinRed) else null,
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) GriffinRed.copy(alpha = 0.15f) else Color.Transparent,
+                                border = if (isSelected) BorderStroke(1.5.dp, GriffinRed) else null,
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clickable { onDateSelected(date) }
