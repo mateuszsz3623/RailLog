@@ -1,4 +1,4 @@
-name: Build & Release RailLog APK
+name: Build & Release TaktRail APK
 
 on:
   push:
@@ -71,10 +71,14 @@ jobs:
         run: |
           mkdir -p dist
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+            cp app/build/outputs/apk/release/app-release.apk dist/TaktRail-release.apk
+            cp app/build/outputs/apk/release/app-release.apk dist/TaktRail-v2.0.0-release.apk
+            # Backwards compatibility copies
             cp app/build/outputs/apk/release/app-release.apk dist/RailLog-release.apk
             cp app/build/outputs/apk/release/app-release.apk dist/RailLog-v2.0.0-release.apk
           fi
           if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk dist/TaktRail-debug.apk
             cp app/build/outputs/apk/debug/app-debug.apk dist/RailLog-debug.apk
           fi
           echo "Dist folder contents:"
@@ -83,22 +87,22 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: raillog-debug-apk
-          path: dist/RailLog-debug.apk
+          name: taktrail-debug-apk
+          path: dist/TaktRail-debug.apk
           if-no-files-found: warn
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: raillog-release-apk
-          path: dist/RailLog-release.apk
+          name: taktrail-release-apk
+          path: dist/TaktRail-release.apk
           if-no-files-found: warn
 
       - name: Publish GitHub Release (Tag Release)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: "RailLog ${{ github.ref_name }}"
+          name: "TaktRail ${{ github.ref_name }} — Premium Redesign"
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -112,14 +116,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "latest"
-          name: "RailLog - Najnowsza wersja (Automatyczne wydanie)"
+          name: "TaktRail — Najnowsza wersja (Automatyczne wydanie)"
           body: |
-            ## 🚆 RailLog — Najnowsza wersja aplikacji
+            ## 🚆 TaktRail — Nowoczesny Dziennik Służb Maszynisty
             Automatyczna kompilacja z gałęzi `main`.
 
             ### 📲 Pobierz i zainstaluj:
-            - **[RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)** (Zalecana wersja instalacyjna)
-            - **[RailLog-debug.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-debug.apk)** (Wersja debugerska)
+            - **[TaktRail-release.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/TaktRail-release.apk)** (Zalecana wersja instalacyjna)
+            - **[TaktRail-debug.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/TaktRail-debug.apk)** (Wersja debugerska)
           draft: false
           prerelease: false
           files: |

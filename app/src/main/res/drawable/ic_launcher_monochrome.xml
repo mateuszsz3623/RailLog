@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Cross-ties -->
+    <path
+        android:fillColor="#80FFFFFF"
+        android:pathData="M43,53.5 h22 c1.1,0 2,0.9 2,2 v0 c0,1.1 -0.9,2 -2,2 H43 c-1.1,0 -2,-0.9 -2,-2 v0 c0,-1.1 0.9,-2 2,-2 z" />
+    <path
+        android:fillColor="#80FFFFFF"
+        android:pathData="M43,66.5 h22 c1.1,0 2,0.9 2,2 v0 c0,1.1 -0.9,2 -2,2 H43 c-1.1,0 -2,-0.9 -2,-2 v0 c0,-1.1 0.9,-2 2,-2 z" />
+
+    <!-- Left Rail -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47.5,38 h2 c1.1,0 2,0.9 2,2 v34 c0,1.1 -0.9,2 -2,2 h-2 c-1.1,0 -2,-0.9 -2,-2 V40 c0,-1.1 0.9,-2 2,-2 z" />
+    <!-- Right Rail -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M58.5,38 h2 c1.1,0 2,0.9 2,2 v34 c0,1.1 -0.9,2 -2,2 h-2 c-1.1,0 -2,-0.9 -2,-2 V40 c0,-1.1 0.9,-2 2,-2 z" />
+
+    <!-- Left Wing -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34.5,32 h17 v7 h-17 c-1.9,0 -3.5,-1.6 -3.5,-3.5 v0 c0,-1.9 1.6,-3.5 3.5,-3.5 z" />
+    <!-- Right Wing -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56.5,32 h17 c1.9,0 3.5,1.6 3.5,3.5 v0 c0,1.9 -1.6,3.5 -3.5,3.5 h-17 z" />
+
+    <!-- Center Accent -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,27 L57,33 L57,43 L54,48 L51,43 L51,33 Z" />
+</vector>

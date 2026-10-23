@@ -318,7 +318,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "RailLog nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
+                            text = "TaktRail nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -330,7 +330,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            StatusBadge(text = "RailLog 2.0.0", color = GriffinRed)
+                            StatusBadge(text = "TaktRail 2.0.0", color = GriffinRed)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(

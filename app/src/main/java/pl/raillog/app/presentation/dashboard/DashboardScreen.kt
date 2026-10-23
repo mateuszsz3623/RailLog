@@ -174,20 +174,31 @@ private fun PremiumDashboardHeader(formattedToday: String) {
                     Surface(
                         shape = RoundedCornerShape(3.dp),
                         color = GriffinRed,
-                        modifier = Modifier.size(width = 4.dp, height = 18.dp)
+                        modifier = Modifier.size(width = 4.dp, height = 20.dp)
                     ) {}
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "RAILLOG",
+                        text = "TAKTRAIL",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
+                            letterSpacing = 1.2.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     StatusBadge(text = "2.0", color = GriffinRed)
                 }
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "DZIENNIK SŁUŻB MASZYNISTY",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.8.sp,
+                        fontSize = 10.sp
+                    ),
+                    color = GriffinRed.copy(alpha = 0.9f)
+                )
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -198,16 +209,22 @@ private fun PremiumDashboardHeader(formattedToday: String) {
             }
 
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                modifier = Modifier.size(width = 64.dp, height = 52.dp)
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF0A0E14),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                modifier = Modifier.size(54.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.img_diesel_header),
-                    contentDescription = "Lokomotywa RailLog",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_taktrail_logo),
+                        contentDescription = "Logo TaktRail",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(46.dp)
+                    )
+                }
             }
         }
     }
@@ -400,10 +417,10 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_locomotive),
+                painter = painterResource(id = R.drawable.ic_taktrail_logo),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                modifier = Modifier.size(width = 110.dp, height = 46.dp)
+                tint = Color.Unspecified,
+                modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
