@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,10 +113,12 @@ fun RailLogNavHost(
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {
+                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                    tonalElevation = 0.dp,
+                    shadowElevation = if (isDark) 0.dp else 8.dp,
+                    border = BorderStroke(1.dp, if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else Color(0xFFCBD5E1)),
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                 ) {
                     Row(
@@ -131,6 +134,7 @@ fun RailLogNavHost(
                             CompactNavItem(
                                 item = item,
                                 selected = selected,
+                                isDark = isDark,
                                 onClick = {
                                     if (currentRoute != item.screen.route) {
                                         navController.navigate(item.screen.route) {
@@ -283,11 +287,12 @@ fun RailLogNavHost(
 private fun CompactNavItem(
     item: BottomNavItem,
     selected: Boolean,
+    isDark: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val activeColor = GriffinRed
-    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val activeColor = if (isDark) GriffinRed else Color(0xFFDC2626)
+    val inactiveColor = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
 
     Column(
         modifier = modifier
@@ -299,7 +304,7 @@ private fun CompactNavItem(
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = if (selected) activeColor.copy(alpha = 0.12f) else Color.Transparent,
+            color = if (selected) activeColor.copy(alpha = if (isDark) 0.15f else 0.10f) else Color.Transparent,
             modifier = Modifier.size(width = 44.dp, height = 28.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -315,7 +320,7 @@ private fun CompactNavItem(
         Text(
             text = item.title,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                 fontSize = 11.sp
             ),
             color = if (selected) activeColor else inactiveColor

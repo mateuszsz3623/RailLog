@@ -65,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -724,7 +725,19 @@ private fun LegInputCard(
 @Composable
 private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+    unfocusedBorderColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+    } else {
+        Color(0xFFCBD5E1)
+    },
     focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedLabelColor = GriffinRed,
+    unfocusedLabelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        Color(0xFF475569)
+    }
 )

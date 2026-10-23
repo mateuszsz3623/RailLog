@@ -31,9 +31,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -111,7 +110,7 @@ fun DashboardScreen(
         // Primary Hero CTA
         item {
             RailLogHeroButton(
-                text = "+ NOWA SŁUŻBA",
+                text = "NOWA SŁUŻBA",
                 onClick = { onNavigateToNewDuty(null) },
                 icon = Icons.Default.Add
             )
@@ -156,10 +155,16 @@ fun DashboardScreen(
 
 @Composable
 private fun PremiumDashboardHeader(formattedToday: String) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
+        ),
+        shadowElevation = if (isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -189,42 +194,43 @@ private fun PremiumDashboardHeader(formattedToday: String) {
                     StatusBadge(text = "2.0", color = GriffinRed)
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = "DZIENNIK SŁUŻB MASZYNISTY",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
-                        fontSize = 10.sp
+                        fontSize = 11.sp
                     ),
-                    color = GriffinRed.copy(alpha = 0.9f)
+                    color = if (isDark) GriffinRed.copy(alpha = 0.9f) else Color(0xFFB91C1C)
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = formattedToday,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
                 )
             }
 
+            // Real 3D Metallic Locomotive Logo Badge from User
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF0A0E14),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                modifier = Modifier.size(54.dp)
+                color = Color.Transparent,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF263242) else Color(0xFFCBD5E1)
+                ),
+                shadowElevation = if (isDark) 0.dp else 2.5.dp,
+                modifier = Modifier.size(58.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
+                Image(
+                    painter = painterResource(id = R.drawable.ic_taktrail_logo),
+                    contentDescription = "Logo TaktRail",
                     modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_taktrail_logo),
-                        contentDescription = "Logo TaktRail",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(46.dp)
-                    )
-                }
+                )
             }
         }
     }
@@ -239,10 +245,16 @@ private fun DashboardKpiCard(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
+        ),
+        shadowElevation = if (isDark) 0.dp else 1.5.dp,
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -254,23 +266,24 @@ private fun DashboardKpiCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.8.sp
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        fontSize = 11.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(17.dp)
+                    tint = if (isDark) accentColor else if (accentColor == PantographAmber) Color(0xFFD97706) else accentColor,
+                    modifier = Modifier.size(18.dp)
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 22.sp
                 ),
@@ -279,8 +292,10 @@ private fun DashboardKpiCard(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = unit,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
             )
         }
     }
@@ -291,6 +306,7 @@ private fun LatestDutyCard(
     duty: Duty,
     onClick: () -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val polishDateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("pl"))
     val formattedDate = duty.date.format(polishDateFormatter)
 
@@ -308,8 +324,8 @@ private fun LatestDutyCard(
             ) {
                 Text(
                     text = formattedDate,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
                 )
 
                 if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
@@ -337,19 +353,21 @@ private fun LatestDutyCard(
                     Icon(
                         imageVector = Icons.Default.Train,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569),
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (duty.vehicleTypes.size > 1) "Pojazdy: " else "Pojazd: ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
                     )
                     Text(
                         text = duty.displayVehiclesSummary,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
                         ),
                         color = MaterialTheme.colorScheme.onSurface
@@ -370,8 +388,10 @@ private fun LatestDutyCard(
             if (info.isNotEmpty()) {
                 Text(
                     text = info.joinToString(" • "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
                 )
             }
 
@@ -380,7 +400,7 @@ private fun LatestDutyCard(
                 Text(
                     text = "\"${duty.notes}\"",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569),
                     maxLines = 2
                 )
             }
@@ -393,13 +413,13 @@ private fun LatestDutyCard(
             ) {
                 Text(
                     text = "Paszport służby",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = GriffinRed
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) GriffinRed else Color(0xFFDC2626)
                 )
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = GriffinRed,
+                    tint = if (isDark) GriffinRed else Color(0xFFDC2626),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -409,6 +429,8 @@ private fun LatestDutyCard(
 
 @Composable
 private fun DashboardEmptyState(onStartClick: () -> Unit) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -416,11 +438,10 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
+            Image(
                 painter = painterResource(id = R.drawable.ic_taktrail_logo),
                 contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(80.dp)
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
@@ -432,7 +453,7 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
             Text(
                 text = "Twój dziennik jest gotowy do drogi. Zapisz swoją pierwszą służbę.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
             )
             Spacer(modifier = Modifier.height(16.dp))
             RailLogHeroButton(

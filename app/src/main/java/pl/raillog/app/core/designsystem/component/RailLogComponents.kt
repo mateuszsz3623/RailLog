@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -43,6 +44,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
+import pl.raillog.app.core.designsystem.LightGriffinRedBg
+import pl.raillog.app.core.designsystem.LightGriffinRedBorder
+import pl.raillog.app.core.designsystem.LightGriffinRedText
+import pl.raillog.app.core.designsystem.LightPantographAmberBg
+import pl.raillog.app.core.designsystem.LightPantographAmberBorder
+import pl.raillog.app.core.designsystem.LightPantographAmberText
+import pl.raillog.app.core.designsystem.LightSignalGreenBg
+import pl.raillog.app.core.designsystem.LightSignalGreenBorder
+import pl.raillog.app.core.designsystem.LightSignalGreenText
+import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.SignalGreen
 
 @Composable
 fun RailLogHeroButton(
@@ -55,6 +67,13 @@ fun RailLogHeroButton(
     enabled: Boolean = true
 ) {
     val view = LocalView.current
+    // Strip leading '+' if icon is already provided, avoiding double plus '+  + NOWA SŁUŻBA'
+    val cleanedText = if (icon != null && text.startsWith("+")) {
+        text.removePrefix("+").trim()
+    } else {
+        text
+    }
+
     Button(
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -71,14 +90,14 @@ fun RailLogHeroButton(
             disabledContainerColor = containerColor.copy(alpha = 0.5f),
             disabledContentColor = contentColor.copy(alpha = 0.7f)
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp, pressedElevation = 0.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp)
     ) {
         if (icon != null) {
             Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
         }
         Text(
-            text = text,
+            text = cleanedText,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
         )
     }
@@ -127,20 +146,31 @@ fun QuickChip(
     accentColor: Color = GriffinRed
 ) {
     val view = LocalView.current
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
-        label = "chipBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-        label = "chipBorder"
-    )
-    val textColor = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurface
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val backgroundColor = if (isSelected) {
+        if (isDark) accentColor.copy(alpha = 0.15f) else LightGriffinRedBg
+    } else {
+        if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White
+    }
+
+    val borderColor = if (isSelected) {
+        if (isDark) accentColor else LightGriffinRedBorder
+    } else {
+        if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else Color(0xFFCBD5E1)
+    }
+
+    val textColor = if (isSelected) {
+        if (isDark) accentColor else LightGriffinRedText
+    } else {
+        if (isDark) MaterialTheme.colorScheme.onSurface else Color(0xFF1E293B)
+    }
 
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = backgroundColor,
         border = BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
         modifier = modifier
             .height(36.dp)
             .clickable {
@@ -165,7 +195,7 @@ fun QuickChip(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp
                 ),
@@ -182,11 +212,18 @@ fun TechnicalCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val cardShape = RoundedCornerShape(14.dp)
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surface
     )
-    val cardBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+    val cardBorder = BorderStroke(
+        width = 1.dp,
+        color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
+    )
+    val cardElevation = CardDefaults.cardElevation(
+        defaultElevation = if (isDark) 0.dp else 1.5.dp
+    )
 
     if (onClick != null) {
         val view = LocalView.current
@@ -198,6 +235,7 @@ fun TechnicalCard(
             shape = cardShape,
             colors = cardColors,
             border = cardBorder,
+            elevation = cardElevation,
             modifier = modifier
         ) {
             CardContentWithAccent(accentColor = accentColor, content = content)
@@ -207,6 +245,7 @@ fun TechnicalCard(
             shape = cardShape,
             colors = cardColors,
             border = cardBorder,
+            elevation = cardElevation,
             modifier = modifier
         ) {
             CardContentWithAccent(accentColor = accentColor, content = content)
@@ -228,7 +267,7 @@ private fun CardContentWithAccent(
                         drawRect(
                             color = accentColor,
                             topLeft = Offset.Zero,
-                            size = Size(3.dp.toPx(), size.height)
+                            size = Size(3.5.dp.toPx(), size.height)
                         )
                     }
                 } else Modifier
@@ -243,22 +282,60 @@ fun StatusBadge(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = GriffinRed,
-    backgroundColor: Color = color.copy(alpha = 0.12f),
-    borderColor: Color = color.copy(alpha = 0.4f)
+    backgroundColor: Color? = null,
+    borderColor: Color? = null
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    // Intelligent accessibility contrast resolution for Light vs Dark theme
+    val (resolvedText, resolvedBg, resolvedBorder) = if (isDark) {
+        Triple(
+            color,
+            backgroundColor ?: color.copy(alpha = 0.15f),
+            borderColor ?: color.copy(alpha = 0.45f)
+        )
+    } else {
+        when {
+            // Amber / Warning badges
+            color == PantographAmber || color.red > 0.8f && color.green > 0.5f && color.blue < 0.2f -> Triple(
+                LightPantographAmberText,
+                backgroundColor ?: LightPantographAmberBg,
+                borderColor ?: LightPantographAmberBorder
+            )
+            // Red / Danger badges
+            color == GriffinRed || color.red > 0.7f && color.green < 0.4f -> Triple(
+                LightGriffinRedText,
+                backgroundColor ?: LightGriffinRedBg,
+                borderColor ?: LightGriffinRedBorder
+            )
+            // Green / Success badges
+            color == SignalGreen || color.green > 0.6f && color.red < 0.2f -> Triple(
+                LightSignalGreenText,
+                backgroundColor ?: LightSignalGreenBg,
+                borderColor ?: LightSignalGreenBorder
+            )
+            else -> Triple(
+                color,
+                backgroundColor ?: color.copy(alpha = 0.12f),
+                borderColor ?: color.copy(alpha = 0.5f)
+            )
+        }
+    }
+
     Surface(
         shape = RoundedCornerShape(6.dp),
-        color = backgroundColor,
-        border = BorderStroke(1.dp, borderColor),
+        color = resolvedBg,
+        border = BorderStroke(1.dp, resolvedBorder),
         modifier = modifier
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp
             ),
-            color = color,
+            color = resolvedText,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
         )
     }
@@ -266,13 +343,15 @@ fun StatusBadge(
 
 @Composable
 fun FormSectionHeader(title: String, modifier: Modifier = Modifier) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium.copy(
             letterSpacing = 1.2.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp
         ),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(bottom = 6.dp)
+        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155),
+        modifier = modifier.padding(vertical = 4.dp)
     )
 }

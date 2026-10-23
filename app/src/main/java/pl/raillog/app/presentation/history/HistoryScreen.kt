@@ -57,11 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
+import pl.raillog.app.core.designsystem.LightGriffinRedBg
+import pl.raillog.app.core.designsystem.LightGriffinRedText
 import pl.raillog.app.core.designsystem.PantographAmber
 import pl.raillog.app.core.designsystem.SignalGreen
 import pl.raillog.app.core.designsystem.component.StatusBadge
@@ -767,15 +770,37 @@ private fun HistoryDutyItem(
 @Composable
 private fun customSearchFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+    unfocusedBorderColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+    } else {
+        Color(0xFFCBD5E1)
+    },
     focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
 )
 
 @Composable
 private fun customChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = GriffinRed.copy(alpha = 0.12f),
-    selectedLabelColor = GriffinRed,
-    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    selectedContainerColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        GriffinRed.copy(alpha = 0.15f)
+    } else {
+        LightGriffinRedBg
+    },
+    selectedLabelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        GriffinRed
+    } else {
+        LightGriffinRedText
+    },
+    containerColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MaterialTheme.colorScheme.surfaceVariant
+    } else {
+        Color.White
+    },
+    labelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        Color(0xFF1E293B)
+    }
 )
