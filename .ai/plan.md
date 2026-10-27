@@ -45,7 +45,7 @@ Wdrożenie nowego logo aplikacji i ikony APK z grafiki `RailLog_Kompletna_Paczka
 
 ### Etap 3 — Kontrola przed publikacją
 
-- [ ] **K.1 Pełny build** (Koder): `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`.
+- [x] **K.1 Pełny build** (Koder): `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`.
 - [ ] **K.2 Test na telefonie** (właściciel): instalacja APK debug (`app/build/outputs/apk/debug/app-debug.apk`); sprawdzić nową ikonę w launcherze (zwykła, okrągła, tematyczna) i logo w Dashboard oraz Ustawieniach.
 
 ## Drobne zmiany po drodze
