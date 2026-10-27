@@ -40,7 +40,7 @@ Wdrożenie nowego logo aplikacji i ikony APK z grafiki `RailLog_Kompletna_Paczka
 
 ### Etap 2 — Porządki
 
-- [ ] **2.1 Wersja aplikacji + .gitignore**
+- [x] **2.1 Wersja aplikacji + .gitignore**
   `app/build.gradle.kts`: `versionCode = 5`, `versionName = "2.1.0"`. `.gitignore`: dopisać `RailLog_Kompletna_Paczka/` i `RailLog_Kompletna_Paczka.zip`.
 
 ### Etap 3 — Kontrola przed publikacją
