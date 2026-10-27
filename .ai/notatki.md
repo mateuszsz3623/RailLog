@@ -2,10 +2,11 @@
 
 > Prowadzi Architekt w OpenCode. Stan projektu, decyzje, TODO, gdzie są dostępy. Bez haseł i sekretów.
 
-## Stan projektu (2026-10-27)
+## Stan projektu (2026-10-28)
 
-- Aplikacja stabilna: TaktRail 2.0.0 (versionCode 4). Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest").
+- Aplikacja stabilna: TaktRail 2.1.0 (versionCode 5) — nowe logo i ikona APK (OPCJA B z semaforem). Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest").
 - Reguły pracy agentów (z Nordtherm, dostosowane do Androida) scalone do `main`.
+- Środowisko: JAVA_HOME wskazuje `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot` (jedyny JDK na dysku) — OK od 28.10.
 
 ## Decyzje
 
