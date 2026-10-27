@@ -16,3 +16,7 @@ app/build/
 *.keystore
 KEYSTORE_BASE64.txt
 .kotlin/
+
+# Pliki lokalne agentów AI
+.ai/raport.md
+.ai/zadanie.md
