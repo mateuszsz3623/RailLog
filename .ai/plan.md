@@ -34,7 +34,7 @@ Wdrożenie nowego logo aplikacji i ikony APK z grafiki `RailLog_Kompletna_Paczka
 
 ### Etap 1 — Grafika
 
-- [ ] **1.1 Skrypt generujący + wszystkie pliki PNG nowego logo**
+- [x] **1.1 Skrypt generujący + wszystkie pliki PNG nowego logo**
   Skopiować `RailLog_Kompletna_Paczka/ikony.jpg` → `design/ikony_warianty.jpg`; napisać `design/generate_semaphore_icons.py` na bazie `design/process_user_logo.py` (kadrowanie: prawy górny kwadrant → wykrycie plakietki na jednolitym tle, z pominięciem napisu „OPCJA B" nad nią → dalszy pipeline jak dotychczas). Uruchomić i nadpisać: `design/taktrail_icon_512.png`, `design/taktrail_icon_round_512.png`, `drawable/ic_taktrail_logo.png` (512), `drawable/ic_launcher_foreground.png` (432), `mipmap-*/ic_launcher.png` + `ic_launcher_round.png` (48/72/96/144/192).
   Sprawdzenie Architekta: podgląd masterów narzędziem wizyjnym (poprawne kadrowanie OPCJI B, semafor nieucięty, brak ramek tła na rogach).
 
