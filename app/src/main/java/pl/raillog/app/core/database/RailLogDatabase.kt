@@ -14,7 +14,7 @@ import pl.raillog.app.core.util.VehicleStringParser
 @Database(
     entities = [DutyEntity::class],
     version = 3,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class RailLogDatabase : RoomDatabase() {
@@ -143,13 +143,14 @@ abstract class RailLogDatabase : RoomDatabase() {
                         "index_duties_createdAt"
                     )
                     val extraIndices = mutableListOf<String>()
-                    db.query("PRAGMA index_list(`duties`)").use { cursor ->
-                        val nameIndex = cursor.getColumnIndexOrThrow("name")
-                        val originIndex = cursor.getColumnIndexOrThrow("origin")
+                    // Indeksy z CREATE INDEX mają sql w sqlite_master (automatyczne nie)
+                    db.query(
+                        "SELECT name FROM sqlite_master WHERE type = 'index' " +
+                            "AND tbl_name = 'duties' AND sql IS NOT NULL"
+                    ).use { cursor ->
                         while (cursor.moveToNext()) {
-                            // origin 'c' = indeks z CREATE INDEX ('u'/'pk' to automatyczne)
-                            val name = cursor.getString(nameIndex)
-                            if (cursor.getString(originIndex) == "c" && name !in expectedIndices) {
+                            val name = cursor.getString(0)
+                            if (name !in expectedIndices) {
                                 extraIndices.add(name)
                             }
                         }
