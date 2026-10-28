@@ -25,4 +25,6 @@ interface DutyRepository {
     suspend fun exportCsv(): String
     suspend fun exportBackupJson(): String
     suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<Int>
+    suspend fun restoreLatestAutoBackup(): Result<Int>
+    suspend fun latestAutoBackupTimestamp(): Long?
 }
