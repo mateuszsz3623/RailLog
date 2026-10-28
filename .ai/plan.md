@@ -65,7 +65,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
   `DutyDetailScreen.kt`: układ kokpitu — wielkie godziny na górze, trasa jako pionowa oś czasu, badge'y statusów, akcje na dole.
 - [x] **5.3 Formularz służby**
   `DutyFormScreen.kt`: sekcje jako tonalne kafle, spójne pola i przyciski, nagłówki mono, bez zmian w walidacji i logice zapisu.
-- [ ] **5.4 Kalendarz i Ustawienia**
+- [x] **5.4 Kalendarz i Ustawienia**
   `CalendarScreen.kt`, `SettingsScreen.kt`: dopasowanie do nowego języka (kafle, typografia, przełącznik motywu w nowym stylu; dark dalej domyślny).
 
 ### Etap 6 — Porządki
