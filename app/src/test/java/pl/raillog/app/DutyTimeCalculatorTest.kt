@@ -50,4 +50,22 @@ class DutyTimeCalculatorTest {
         assertNull(DutyTimeCalculator.calculateDurationMinutes("", "16:00"))
         assertNull(DutyTimeCalculator.calculateDurationMinutes("invalid", "16:00"))
     }
+
+    @Test
+    fun normalizeTimeInputAcceptsCommonFormats() {
+        listOf("6:00", "06:00", "600", "0600", "6.00", "6,00", "6", " 06:00 ").forEach {
+            assertEquals(it, "06:00", DutyTimeCalculator.normalizeTimeInput(it))
+        }
+        assertEquals("14:05", DutyTimeCalculator.normalizeTimeInput("1405"))
+        assertEquals("23:59", DutyTimeCalculator.normalizeTimeInput("23:59"))
+        assertEquals("00:00", DutyTimeCalculator.normalizeTimeInput("0"))
+        assertEquals("22:00", DutyTimeCalculator.normalizeTimeInput("22"))
+    }
+
+    @Test
+    fun normalizeTimeInputRejectsInvalid() {
+        listOf("", "  ", "25:00", "0675", "24:00", "6:5", "abc", "12:345", "12345", "1:2:3", "-1:00").forEach {
+            assertNull(it, DutyTimeCalculator.normalizeTimeInput(it))
+        }
+    }
 }

@@ -1,8 +1,13 @@
 package pl.raillog.app.presentation.dutyform
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -10,9 +15,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import pl.raillog.app.core.database.entity.LocalDateSerializer
 import pl.raillog.app.core.util.DutyTimeCalculator
 import pl.raillog.app.core.util.VehicleStringParser
 import pl.raillog.app.domain.model.Duty
@@ -20,6 +32,7 @@ import pl.raillog.app.domain.model.DutyLeg
 import pl.raillog.app.domain.repository.DutyRepository
 import java.time.LocalDate
 
+@Serializable
 data class LegFormState(
     val startStation: String = "",
     val endStation: String = "",
@@ -27,8 +40,11 @@ data class LegFormState(
     val vehicle: String = ""
 )
 
+@Serializable
 data class DutyFormState(
     val dutyId: Long = 0L,
+    val createdAt: Long = 0L,
+    @Serializable(with = LocalDateSerializer::class)
     val date: LocalDate = LocalDate.now(),
     val legacyVehicleSeries: String? = null,
     val legacyVehicleNumber: String? = null,
@@ -40,6 +56,7 @@ data class DutyFormState(
     val isWholeDutyOvertime: Boolean = false,
     val notes: String = "",
     val additionalNotes: String = "",
+    @Transient
     val isSaving: Boolean = false
 ) {
     val calculatedDurationMinutes: Int?
@@ -61,24 +78,38 @@ data class DutyFormState(
 
 class DutyFormViewModel(
     private val repository: DutyRepository,
+    private val savedStateHandle: SavedStateHandle,
     private val initialDutyId: Long = 0L,
     private val prefilledVehicle: String? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        DutyFormState(
-            dutyId = initialDutyId,
-            legs = if (!prefilledVehicle.isNullOrBlank()) {
-                listOf(LegFormState(vehicle = prefilledVehicle))
-            } else {
-                listOf(LegFormState())
-            }
-        )
+    private val draftJson = Json { ignoreUnknownKeys = true }
+
+    private val baseState = DutyFormState(
+        dutyId = initialDutyId,
+        legs = if (!prefilledVehicle.isNullOrBlank()) {
+            listOf(LegFormState(vehicle = prefilledVehicle))
+        } else {
+            listOf(LegFormState())
+        }
     )
+
+    // Stan początkowy (po wczytaniu z bazy / prefill) do wykrywania niezapisanych zmian
+    private val initialState = MutableStateFlow(restoreState(KEY_INITIAL) ?: baseState)
+    private val restoredDraft: DutyFormState? = restoreState(KEY_DRAFT)
+
+    private val _uiState = MutableStateFlow(restoredDraft ?: baseState)
     val uiState: StateFlow<DutyFormState> = _uiState.asStateFlow()
+
+    val isDirty: StateFlow<Boolean> = combineDirty()
+
+    private var draftEnabled = true
 
     private val _saveSuccessEvent = MutableSharedFlow<Unit>()
     val saveSuccessEvent: SharedFlow<Unit> = _saveSuccessEvent.asSharedFlow()
+
+    private val _errorEvent = MutableSharedFlow<String>()
+    val errorEvent: SharedFlow<String> = _errorEvent.asSharedFlow()
 
     val frequentSeries: StateFlow<List<String>> = repository.getFrequentVehicleSeries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf("EU160", "EU200", "EP09", "ED250", "ET42", "EN57"))
@@ -90,10 +121,38 @@ class DutyFormViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        if (initialDutyId > 0L) {
+        if (restoredDraft == null && initialDutyId > 0L) {
             loadExistingDuty(initialDutyId)
         }
+        _uiState.onEach { state ->
+            if (draftEnabled) {
+                savedStateHandle[KEY_DRAFT] = draftJson.encodeToString(state)
+            }
+        }.launchIn(viewModelScope)
+        initialState.onEach { state ->
+            if (draftEnabled) {
+                savedStateHandle[KEY_INITIAL] = draftJson.encodeToString(state)
+            }
+        }.launchIn(viewModelScope)
     }
+
+    private fun restoreState(key: String): DutyFormState? {
+        val raw = savedStateHandle.get<String>(key) ?: return null
+        return try {
+            draftJson.decodeFromString<DutyFormState>(raw)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun combineDirty(): StateFlow<Boolean> =
+        kotlinx.coroutines.flow.combine(_uiState, initialState) { current, initial ->
+            current.copy(isSaving = false) != initial.copy(isSaving = false)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            _uiState.value.copy(isSaving = false) != initialState.value.copy(isSaving = false)
+        )
 
     private fun loadExistingDuty(id: Long) {
         viewModelScope.launch {
@@ -123,9 +182,9 @@ class DutyFormViewModel(
             val otH = if (otTotal > 0) (otTotal / 60).toString() else ""
             val otM = if (otTotal > 0) (otTotal % 60).toString() else ""
 
-            _uiState.update {
-                it.copy(
+            val loaded = _uiState.value.copy(
                     dutyId = duty.id,
+                    createdAt = duty.createdAt,
                     date = duty.date,
                     legacyVehicleSeries = duty.vehicleSeries,
                     legacyVehicleNumber = duty.vehicleNumber,
@@ -138,7 +197,8 @@ class DutyFormViewModel(
                     notes = duty.notes ?: "",
                     additionalNotes = duty.additionalNotes ?: ""
                 )
-            }
+            _uiState.value = loaded
+            initialState.value = loaded
         }
     }
 
@@ -152,6 +212,16 @@ class DutyFormViewModel(
 
     fun onEndTimeChanged(time: String) {
         _uiState.update { it.copy(endTime = time.trim()) }
+    }
+
+    /** Wywoływane przy utracie fokusu: poprawny wpis zamienia na "HH:mm", błędny zostawia. */
+    fun normalizeTimes() {
+        _uiState.update { current ->
+            current.copy(
+                startTime = DutyTimeCalculator.normalizeTimeInput(current.startTime) ?: current.startTime,
+                endTime = DutyTimeCalculator.normalizeTimeInput(current.endTime) ?: current.endTime
+            )
+        }
     }
 
     // --- LEGS MANAGEMENT ---
@@ -270,62 +340,88 @@ class DutyFormViewModel(
     }
 
     fun saveDuty() {
+        if (_uiState.value.isSaving) return
+        normalizeTimes()
         val current = _uiState.value
-        if (current.isSaving) return
+
+        val startInvalid = current.startTime.isNotBlank() && DutyTimeCalculator.normalizeTimeInput(current.startTime) == null
+        val endInvalid = current.endTime.isNotBlank() && DutyTimeCalculator.normalizeTimeInput(current.endTime) == null
+        if (startInvalid || endInvalid) {
+            viewModelScope.launch { _errorEvent.emit("Popraw godziny, np. 06:15") }
+            return
+        }
 
         _uiState.update { it.copy(isSaving = true) }
 
         viewModelScope.launch {
-            val domainLegs = current.legs
-                .filter { it.startStation.isNotBlank() || it.endStation.isNotBlank() || it.trainNumber.isNotBlank() || it.vehicle.isNotBlank() }
-                .map { leg ->
-                    val (vSeries, vNumber) = VehicleStringParser.normalizeSeriesAndNumber(leg.vehicle, null)
-                    DutyLeg(
-                        startStation = leg.startStation.trim(),
-                        endStation = leg.endStation.trim(),
-                        trainNumber = leg.trainNumber.trim().uppercase(),
-                        vehicleSeries = vSeries.ifBlank { null },
-                        vehicleNumber = vNumber.ifBlank { null }
-                    )
-                }
+            try {
+                val domainLegs = current.legs
+                    .filter { it.startStation.isNotBlank() || it.endStation.isNotBlank() || it.trainNumber.isNotBlank() || it.vehicle.isNotBlank() }
+                    .map { leg ->
+                        val (vSeries, vNumber) = VehicleStringParser.normalizeSeriesAndNumber(leg.vehicle, null)
+                        DutyLeg(
+                            startStation = leg.startStation.trim(),
+                            endStation = leg.endStation.trim(),
+                            trainNumber = leg.trainNumber.trim().uppercase(),
+                            vehicleSeries = vSeries.ifBlank { null },
+                            vehicleNumber = vNumber.ifBlank { null }
+                        )
+                    }
 
-            // Derive entity-level fallback vehicle series/number from the first leg with vehicle,
-            // or retain existing legacy series/number so historical integrity is maintained
-            val firstLegWithVehicle = domainLegs.firstOrNull { !it.vehicleSeries.isNullOrBlank() }
-            val finalSeries = firstLegWithVehicle?.vehicleSeries
-                ?: current.legacyVehicleSeries?.ifBlank { null }
-            val finalNumber = firstLegWithVehicle?.vehicleNumber
-                ?: current.legacyVehicleNumber?.ifBlank { null }
+                // Derive entity-level fallback vehicle series/number from the first leg with vehicle,
+                // or retain existing legacy series/number so historical integrity is maintained
+                val firstLegWithVehicle = domainLegs.firstOrNull { !it.vehicleSeries.isNullOrBlank() }
+                val finalSeries = firstLegWithVehicle?.vehicleSeries
+                    ?: current.legacyVehicleSeries?.ifBlank { null }
+                val finalNumber = firstLegWithVehicle?.vehicleNumber
+                    ?: current.legacyVehicleNumber?.ifBlank { null }
 
-            val duty = Duty(
-                id = current.dutyId,
-                date = current.date,
-                vehicleSeries = finalSeries,
-                vehicleNumber = finalNumber,
-                startTime = current.startTime.ifBlank { null },
-                endTime = current.endTime.ifBlank { null },
-                dutyDurationMinutes = current.calculatedDurationMinutes ?: 0,
-                legs = domainLegs,
-                overtimeMinutes = current.totalOvertimeMinutes,
-                isWholeDutyOvertime = current.isWholeDutyOvertime,
-                notes = current.notes.ifBlank { null },
-                additionalNotes = current.additionalNotes.ifBlank { null }
-            )
+                val now = System.currentTimeMillis()
+                val duty = Duty(
+                    id = current.dutyId,
+                    date = current.date,
+                    vehicleSeries = finalSeries,
+                    vehicleNumber = finalNumber,
+                    startTime = current.startTime.ifBlank { null },
+                    endTime = current.endTime.ifBlank { null },
+                    dutyDurationMinutes = current.calculatedDurationMinutes ?: 0,
+                    legs = domainLegs,
+                    overtimeMinutes = current.totalOvertimeMinutes,
+                    isWholeDutyOvertime = current.isWholeDutyOvertime,
+                    notes = current.notes.ifBlank { null },
+                    additionalNotes = current.additionalNotes.ifBlank { null },
+                    createdAt = if (current.dutyId > 0L && current.createdAt > 0L) current.createdAt else now,
+                    updatedAt = now
+                )
 
-            repository.saveDuty(duty)
-            _uiState.update { it.copy(isSaving = false) }
-            _saveSuccessEvent.emit(Unit)
+                repository.saveDuty(duty)
+                // Zapisane: szkic nie jest już potrzebny
+                draftEnabled = false
+                savedStateHandle.remove<String>(KEY_DRAFT)
+                savedStateHandle.remove<String>(KEY_INITIAL)
+                _uiState.update { it.copy(isSaving = false) }
+                _saveSuccessEvent.emit(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isSaving = false) }
+                _errorEvent.emit("Nie udało się zapisać służby: ${e.localizedMessage ?: e.javaClass.simpleName}")
+            }
         }
     }
 
-    class Factory(
-        private val repository: DutyRepository,
-        private val dutyId: Long = 0L,
-        private val prefilledVehicle: String? = null
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return DutyFormViewModel(repository, dutyId, prefilledVehicle) as T
+    companion object {
+        private const val KEY_DRAFT = "draft"
+        private const val KEY_INITIAL = "initial"
+
+        fun factory(
+            repository: DutyRepository,
+            dutyId: Long = 0L,
+            prefilledVehicle: String? = null
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                DutyFormViewModel(repository, createSavedStateHandle(), dutyId, prefilledVehicle)
+            }
         }
     }
 }

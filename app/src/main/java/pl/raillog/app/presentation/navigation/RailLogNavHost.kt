@@ -242,7 +242,7 @@ fun RailLogNavHost(
                 } else null
 
                 val vm: DutyFormViewModel = viewModel(
-                    factory = DutyFormViewModel.Factory(repository, dutyId, prefilled)
+                    factory = DutyFormViewModel.factory(repository, dutyId, prefilled)
                 )
 
                 DutyFormScreen(

@@ -1,5 +1,7 @@
 package pl.raillog.app.presentation.dutyform
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -34,6 +36,8 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Train
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,12 +64,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.util.DutyTimeCalculator
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
@@ -86,17 +93,57 @@ fun DutyFormScreen(
     onSaveSuccess: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val isDirty by viewModel.isDirty.collectAsState()
+    val context = LocalContext.current
     val frequentSeries by viewModel.frequentSeries.collectAsState()
     val recentVehicles by viewModel.recentVehicles.collectAsState()
     val recentRoutes by viewModel.recentRoutes.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    var startFocused by remember { mutableStateOf(false) }
+    var endFocused by remember { mutableStateOf(false) }
     var notesExpanded by remember { mutableStateOf(state.notes.isNotBlank() || state.additionalNotes.isNotBlank()) }
 
     LaunchedEffect(Unit) {
         viewModel.saveSuccessEvent.collect {
             onSaveSuccess()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val requestExit = {
+        if (isDirty) showDiscardDialog = true else onNavigateBack()
+    }
+    BackHandler(enabled = isDirty && !state.isSaving) { showDiscardDialog = true }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text(text = "Odrzucić zmiany?", fontWeight = FontWeight.Bold) },
+            text = { Text("Wpisane dane nie zostały zapisane i zostaną utracone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDiscardDialog = false
+                        onNavigateBack()
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("ODRZUĆ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text("ZOSTAŃ")
+                }
+            }
+        )
     }
 
     val polishDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
@@ -112,7 +159,7 @@ fun DutyFormScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { requestExit() }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
                     }
                 },
@@ -260,24 +307,38 @@ fun DutyFormScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val startError = !startFocused && state.startTime.isNotBlank() &&
+                        DutyTimeCalculator.normalizeTimeInput(state.startTime) == null
                     OutlinedTextField(
                         value = state.startTime,
                         onValueChange = viewModel::onStartTimeChanged,
                         label = { Text("Rozpoczęcie (np. 22:00)") },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (startFocused && !it.isFocused) viewModel.normalizeTimes()
+                            startFocused = it.isFocused
+                        },
                         singleLine = true,
                         placeholder = { Text("06:00") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                        isError = startError,
+                        supportingText = if (startError) ({ Text("Wpisz godzinę, np. 06:15") }) else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         colors = customTextFieldColors()
                     )
+                    val endError = !endFocused && state.endTime.isNotBlank() &&
+                        DutyTimeCalculator.normalizeTimeInput(state.endTime) == null
                     OutlinedTextField(
                         value = state.endTime,
                         onValueChange = viewModel::onEndTimeChanged,
                         label = { Text("Zakończenie (np. 06:15)") },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (endFocused && !it.isFocused) viewModel.normalizeTimes()
+                            endFocused = it.isFocused
+                        },
                         singleLine = true,
                         placeholder = { Text("14:30") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                        isError = endError,
+                        supportingText = if (endError) ({ Text("Wpisz godzinę, np. 06:15") }) else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         colors = customTextFieldColors()
                     )
                 }
