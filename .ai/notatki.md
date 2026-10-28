@@ -2,12 +2,12 @@
 
 > Prowadzi Architekt w OpenCode. Stan projektu, decyzje, TODO, gdzie są dostępy. Bez haseł i sekretów.
 
-## Stan projektu (2026-10-28)
+## Stan projektu (2026-10-28, po redesignie)
 
-- Aplikacja: **RailLog 2.1.1** (versionCode 6) na gałęzi `fix/2.1.1` — gotowa do publikacji. Zawiera: nowe logo i ikonę (OPCJA B z semaforem), zmianę nazwy aplikacji na **RailLog** (decyzja właściciela), naprawę crasha przy starcie (migracja bazy 4→3).
-- Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest"); główne pliki wydania nazywają się teraz RailLog-release.apk / RailLog-debug.apk (kopie TaktRail-* zostają dla starych linków).
+- Aplikacja: **RailLog 2.2.0** (versionCode 7) — redesign **„KABINA"** (kokpit maszynisty) scalony do `main` z gałęzi `feature/redesign-kabina`: fonty Inter + JetBrains Mono wbudowane offline, bento-grid Dashboardu z liczbami kokpitowymi (CockpitNumber), karty bez ramek (BentoCard), dolny pasek z pigułką aktywności, Statystyki/Historia/Szczegóły/Formularz/Kalendarz/Ustawienia na kolorach motywu (zero hardcodowanych hexów), ciemny motyw wiodący. Logo/ikona bez zmian.
+- Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest"); główne pliki wydania nazywają się RailLog-release.apk / RailLog-debug.apk.
 - Reguły pracy agentów (z Nordtherm, dostosowane do Androida) scalone do `main`.
-- Środowisko: JAVA_HOME wskazuje `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot` (jedyny JDK na dysku) — OK od 28.10.
+- Środowisko: JAVA_HOME wskazuje `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot` (jedyny JDK na dysku) — OK od 28.10. Lokalnie działa też assembleRelease (keystore lokalny dostępny).
 
 ## Incydent bazy v4 (28.10)
 
