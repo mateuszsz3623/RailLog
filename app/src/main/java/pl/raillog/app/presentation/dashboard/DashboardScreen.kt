@@ -1,11 +1,13 @@
 package pl.raillog.app.presentation.dashboard
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,33 +17,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DirectionsRailway
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import pl.raillog.app.R
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.PantographAmberDark
 import pl.raillog.app.core.designsystem.SignalGreen
+import pl.raillog.app.core.designsystem.component.BentoCard
+import pl.raillog.app.core.designsystem.component.CockpitNumber
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
@@ -72,39 +72,23 @@ fun DashboardScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Kafel „DZIŚ" — identyfikacja + status dnia
         item {
             Spacer(modifier = Modifier.height(4.dp))
-            PremiumDashboardHeader(formattedToday = formattedToday)
+            TodayBentoCard(
+                formattedToday = formattedToday,
+                hasDutyToday = latestDuty?.date == today
+            )
         }
 
-        // Monthly KPI Summary Widgets
+        // Bento KPI — asymetryczny wiersz liczb kokpitowych
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                DashboardKpiCard(
-                    title = "SŁUŻBY W TYM M-CU",
-                    value = "${statistics.currentMonthDuties}",
-                    unit = if (statistics.currentMonthDuties == 1) "służba" else "służb",
-                    icon = Icons.Default.DirectionsRailway,
-                    accentColor = GriffinRed,
-                    modifier = Modifier.weight(1f)
-                )
-
-                val hours = statistics.currentMonthOvertimeMinutes / 60
-                val mins = statistics.currentMonthOvertimeMinutes % 60
-                val overtimeValue = if (hours > 0) "${hours}h ${mins}m" else "${mins} min"
-
-                DashboardKpiCard(
-                    title = "NADGODZINY",
-                    value = if (statistics.currentMonthOvertimeMinutes > 0) overtimeValue else "0 min",
-                    unit = if (statistics.currentMonthOvertimeMinutes > 0) "bilans m-ca" else "brak nadgodzin",
-                    icon = Icons.Default.Schedule,
-                    accentColor = if (statistics.currentMonthOvertimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            DashboardKpiRow(
+                currentMonthDuties = statistics.currentMonthDuties,
+                totalDuties = statistics.totalDuties,
+                currentMonthOvertimeMinutes = statistics.currentMonthOvertimeMinutes,
+                monthFraction = today.dayOfMonth.toFloat() / today.lengthOfMonth()
+            )
         }
 
         // Primary Hero CTA
@@ -154,151 +138,174 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun PremiumDashboardHeader(formattedToday: String) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
-        ),
-        shadowElevation = if (isDark) 0.dp else 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+private fun TodayBentoCard(
+    formattedToday: String,
+    hasDutyToday: Boolean
+) {
+    BentoCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(3.dp),
-                        color = GriffinRed,
-                        modifier = Modifier.size(width = 4.dp, height = 20.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "RAILLOG",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.2.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    StatusBadge(text = "2.0", color = GriffinRed)
-                }
+            Image(
+                painter = painterResource(id = R.drawable.ic_taktrail_logo),
+                contentDescription = "Logo RailLog",
+                modifier = Modifier.size(48.dp)
+            )
 
-                Spacer(modifier = Modifier.height(3.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "RAILLOG",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Text(
                     text = "DZIENNIK SŁUŻB MASZYNISTY",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        fontSize = 11.sp
-                    ),
-                    color = if (isDark) GriffinRed.copy(alpha = 0.9f) else Color(0xFFB91C1C)
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formattedToday,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            // Real 3D Metallic Locomotive Logo Badge from User
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (isDark) Color(0xFF263242) else Color(0xFFCBD5E1)
-                ),
-                shadowElevation = if (isDark) 0.dp else 2.5.dp,
-                modifier = Modifier.size(58.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_taktrail_logo),
-                    contentDescription = "Logo RailLog",
-                    modifier = Modifier.fillMaxSize()
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (hasDutyToday) {
+                    StatusBadge(text = "SŁUŻBA DZISIAJ", color = SignalGreen)
+                } else {
+                    val neutral = MaterialTheme.colorScheme.onSurfaceVariant
+                    StatusBadge(
+                        text = "DZIEŃ BEZ SŁUŻBY",
+                        color = neutral,
+                        backgroundColor = neutral.copy(alpha = 0.12f)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DashboardKpiCard(
-    title: String,
-    value: String,
-    unit: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    accentColor: Color,
-    modifier: Modifier = Modifier
+private fun DashboardKpiRow(
+    currentMonthDuties: Int,
+    totalDuties: Int,
+    currentMonthOvertimeMinutes: Int,
+    monthFraction: Float
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val amberAccent = if (isDark) PantographAmber else PantographAmberDark
+    val (overtimeValue, overtimeUnit) = cockpitHoursMinutes(currentMonthOvertimeMinutes)
 
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
-        ),
-        shadowElevation = if (isDark) 0.dp else 1.5.dp,
-        modifier = modifier
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+        // Kafel A — służby w miesiącu + pasek tempa miesiąca
+        BentoCard(modifier = Modifier.weight(1.3f)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        fontSize = 11.sp
-                    ),
-                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
+                CockpitNumber(
+                    value = "$currentMonthDuties",
+                    unit = if (currentMonthDuties == 1) "służba" else "służb",
+                    label = "W TYM MIESIĄCU • ogółem $totalDuties",
+                    accentColor = MaterialTheme.colorScheme.primary
                 )
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isDark) accentColor else if (accentColor == PantographAmber) Color(0xFFD97706) else accentColor,
-                    modifier = Modifier.size(18.dp)
+                Spacer(modifier = Modifier.height(14.dp))
+                MonthPaceBar(monthFraction = monthFraction)
+            }
+        }
+
+        // Kafel B — nadgodziny miesiąca
+        BentoCard(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                CockpitNumberMedium(
+                    value = overtimeValue,
+                    unit = overtimeUnit,
+                    label = "NADGODZINY M-CA",
+                    accentColor = if (currentMonthOvertimeMinutes > 0) {
+                        amberAccent
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+/** Cienki pasek „tempa miesiąca": wypełnienie = dzień miesiąca / liczba dni miesiąca. */
+@Composable
+private fun MonthPaceBar(monthFraction: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(monthFraction.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary)
+        )
+    }
+}
+
+/**
+ * Mini-wariant [CockpitNumber] na displayMedium (34 sp, mono ze skali typografii) —
+ * do ciaśniejszych kafli bento (nadgodziny, czas ostatniej służby).
+ */
+@Composable
+private fun CockpitNumberMedium(
+    value: String,
+    unit: String? = null,
+    label: String? = null,
+    accentColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 22.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.displayMedium,
+                color = accentColor,
+                modifier = Modifier.alignByBaseline()
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            if (unit != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+        }
+        if (label != null) {
             Text(
-                text = unit,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+/** Minuty → para (wartość, jednostka) dla liczb kokpitowych: „8h"+"30m", „8h", „45"+"min", „0"+"min". */
+private fun cockpitHoursMinutes(minutes: Int?): Pair<String, String?> = when {
+    minutes == null -> "—" to null
+    minutes <= 0 -> "0" to "min"
+    minutes / 60 > 0 && minutes % 60 > 0 -> "${minutes / 60}h" to "${minutes % 60}m"
+    minutes / 60 > 0 -> "${minutes / 60}h" to null
+    else -> "$minutes" to "min"
 }
 
 @Composable
@@ -307,105 +314,105 @@ private fun LatestDutyCard(
     onClick: () -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val amberAccent = if (isDark) PantographAmber else PantographAmberDark
     val polishDateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("pl"))
     val formattedDate = duty.date.format(polishDateFormatter)
 
+    val hasOvertime = duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime
+    val durationMinutes = duty.calculatedDurationMinutes
+        ?: duty.dutyDurationMinutes.takeIf { it > 0 }
+    val (durationValue, durationUnit) = cockpitHoursMinutes(durationMinutes)
+
     TechnicalCard(
-        accentColor = if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) PantographAmber else null,
+        accentColor = if (hasOvertime) PantographAmber else null,
         onClick = onClick,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header: Date and Overtime badge
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
-                )
-
-                if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
-                    StatusBadge(
-                        text = duty.displayOvertime,
-                        color = PantographAmber
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Main Route
-            Text(
-                text = duty.displayRoute,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Vehicles per legs / summary
-            if (duty.displayVehiclesSummary != "—") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Train,
-                        contentDescription = null,
-                        tint = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569),
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                // Lewa kolumna — treść służby
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (duty.vehicleTypes.size > 1) "Pojazdy: " else "Pojazd: ",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
+                        text = formattedDate,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = duty.displayVehiclesSummary,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        ),
+                        text = duty.displayRoute,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (duty.displayVehiclesSummary != "—") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Train,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${if (duty.vehicleTypes.size > 1) "Pojazdy" else "Pojazd"}: ${duty.displayVehiclesSummary}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    if (duty.displayTrains != "—") {
+                        Text(
+                            text = "Pociąg: ${duty.displayTrains}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    if (!duty.notes.isNullOrBlank()) {
+                        Text(
+                            text = "\"${duty.notes}\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+
+                // Prawa kolumna — wyeksponowany czas trwania
+                Column(horizontalAlignment = Alignment.End) {
+                    CockpitNumberMedium(
+                        value = durationValue,
+                        unit = durationUnit,
+                        accentColor = if (hasOvertime) amberAccent else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "CZAS SŁUŻBY",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!duty.startTime.isNullOrBlank() && !duty.endTime.isNullOrBlank()) {
+                        Text(
+                            text = "${duty.startTime} - ${duty.endTime}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
-            // Train & Duration
-            val info = mutableListOf<String>()
-            if (duty.displayTrains != "—") {
-                info.add("Pociąg: ${duty.displayTrains}")
-            }
-            if (duty.displayDuration != null) {
-                val timeSpan = if (!duty.startTime.isNullOrBlank() && !duty.endTime.isNullOrBlank()) " (${duty.startTime} - ${duty.endTime})" else ""
-                info.add("Czas: ${duty.displayDuration}$timeSpan")
-            }
-            if (info.isNotEmpty()) {
-                Text(
-                    text = info.joinToString(" • "),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155)
-                )
-            }
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (!duty.notes.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "\"${duty.notes}\"",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569),
-                    maxLines = 2
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -413,13 +420,13 @@ private fun LatestDutyCard(
             ) {
                 Text(
                     text = "Paszport służby",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDark) GriffinRed else Color(0xFFDC2626)
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = if (isDark) GriffinRed else Color(0xFFDC2626),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -429,8 +436,6 @@ private fun LatestDutyCard(
 
 @Composable
 private fun DashboardEmptyState(onStartClick: () -> Unit) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -453,7 +458,7 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
             Text(
                 text = "Twój dziennik jest gotowy do drogi. Zapisz swoją pierwszą służbę.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             RailLogHeroButton(

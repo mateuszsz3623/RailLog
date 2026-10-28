@@ -47,7 +47,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 3 — Dashboard (kokpit)
 
-- [ ] **3.1 Bento-grid na Starcie**
+- [x] **3.1 Bento-grid na Starcie**
   `DashboardScreen.kt`: duży kafel „dziś" (data, status dnia: służba dzisiejsza/wolne), KPI jako `CockpitNumber` w `BentoCard`, cienki pasek postępu miesiąca, hero CTA „NOWA SŁUŻBA", chipsy ostatnich pojazdów, karta ostatniej służby bez ramki, dopracowany empty state. Nagłówki sekcji na mono.
   Pliki: `DashboardScreen.kt`.
 
