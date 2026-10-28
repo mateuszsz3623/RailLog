@@ -81,3 +81,5 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 ## Drobne zmiany po drodze
 
 - [x] **D.1 Wymiana przestarzałych Icons.Filled.ArrowBack na AutoMirrored** (CalendarScreen, DutyDetailScreen, DutyFormScreen) — zgłoszone w K.1.
+- [x] **D.2 README zawsze pokazuje aktualną wersję** (fix/readme-auto-wersja) — CI wyciąga versionName, podmienia linię „Aktualna wersja" w README i commitem bota trzyma ją w sync; wydanie „latest" dostaje wersję w nazwie i treści.
+- [x] **D.3 Najnowsze APK zawsze w repo** (fix/readme-auto-wersja) — CI po każdym wydaniu przebudowuje gałąź-sierotę `apk-latest` (tylko RailLog-release.apk, RailLog-debug.apk, POBIERZ.md z wersją i datą); alternatywny link bezpośredni dodany w README.

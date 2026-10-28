@@ -34,6 +34,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Extract app version
+        id: ver
+        run: |
+          VER=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Wykryta wersja aplikacji: $VER"
+
       - name: Configure Signing Keystore
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
@@ -120,8 +127,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "latest"
-          name: "RailLog — Najnowsza wersja (Automatyczne wydanie)"
+          name: "RailLog ${{ steps.ver.outputs.version }} — Najnowsza wersja (Automatyczne wydanie)"
           body: |
+            ### Wersja **${{ steps.ver.outputs.version }}**
+
             ## 🚆 RailLog — Prywatny dziennik służb maszynisty na Androida
 
             RailLog to elegancka aplikacja dla maszynistów kolejowych do rejestrowania służb: odcinki trasy z pojazdami trakcyjnymi (seria + numer), czas trwania, nadgodziny i statystyki miesięczne. Działa w 100% offline — bez kont, chmury i telemetrii, a dane zostają wyłącznie na Twoim telefonie. Eksport do CSV pod polski Excel oraz pełny backup JSON z przywracaniem.
@@ -138,3 +147,49 @@ jobs:
             dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep README version in sync
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          sed -i "s|^\*\*Aktualna wersja: .*\*\*$|**Aktualna wersja: ${VER}**|" README.md
+          if git diff --quiet -- README.md; then
+            echo "README.md bez zmian — wersja już aktualna."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "docs: wersja w README zaktualizowana do ${VER}"
+            git push
+            echo "README.md zaktualizowany do ${VER} i wypchnięty."
+          fi
+
+      - name: Publish APKs to apk-latest branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push origin --delete apk-latest || true
+          git switch --orphan apk-latest
+          cp dist/RailLog-release.apk .
+          cp dist/RailLog-debug.apk .
+          cat > POBIERZ.md <<EOF
+          # RailLog — najnowsza wersja
+
+          ## Wersja: ${VER}
+
+          Zbudowano: $(date +'%Y-%m-%d %H:%M') UTC
+
+          ## Pliki
+          - **RailLog-release.apk** — wersja produkcyjna (**zalecana**)
+          - **RailLog-debug.apk** — wersja diagnostyczna (do testów)
+
+          ---
+
+          Gałąź utrzymywana automatycznie przez CI — zawsze zawiera najnowsze APK.
+          EOF
+          git add -A
+          git add -f RailLog-release.apk RailLog-debug.apk
+          git commit -m "RailLog ${VER} — najnowsze APK"
+          git push origin apk-latest
