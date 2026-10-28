@@ -59,7 +59,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 5 — Pozostałe ekrany
 
-- [ ] **5.1 Historia służb**
+- [x] **5.1 Historia służb**
   `HistoryScreen.kt`: karty bez ramek na tonach, filtry jako chipsy w nowym stylu, podsumowanie miesiąca w mono.
 - [ ] **5.2 Szczegóły służby**
   `DutyDetailScreen.kt`: układ kokpitu — wielkie godziny na górze, trasa jako pionowa oś czasu, badge'y statusów, akcje na dole.

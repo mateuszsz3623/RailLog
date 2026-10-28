@@ -5,7 +5,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,16 +55,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pl.raillog.app.core.designsystem.GriffinRed
-import pl.raillog.app.core.designsystem.LightGriffinRedBg
-import pl.raillog.app.core.designsystem.LightGriffinRedText
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.PantographAmberDark
 import pl.raillog.app.core.designsystem.SignalGreen
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
@@ -105,7 +99,7 @@ fun HistoryScreen(
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = "Widok Kalendarza",
-                            tint = GriffinRed
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -126,11 +120,11 @@ fun HistoryScreen(
             TabRow(
                 selectedTabIndex = if (currentTab == HistoryTab.DUTIES) 0 else 1,
                 containerColor = MaterialTheme.colorScheme.background,
-                contentColor = GriffinRed,
+                contentColor = MaterialTheme.colorScheme.primary,
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
                         Modifier.tabIndicatorOffset(tabPositions[if (currentTab == HistoryTab.DUTIES) 0 else 1]),
-                        color = GriffinRed
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             ) {
@@ -388,7 +382,7 @@ private fun StationKnowledgeCard(
                     Icon(
                         imageVector = Icons.Default.DirectionsRailway,
                         contentDescription = null,
-                        tint = GriffinRed,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -448,9 +442,8 @@ private fun StationKnowledgeCard(
                     )
                     item.duties.take(5).forEach { duty ->
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onDutyClick(duty.id) }
@@ -479,7 +472,7 @@ private fun StationKnowledgeCard(
                                 Text(
                                     text = "Szczegóły ›",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = GriffinRed
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -506,7 +499,7 @@ private fun VehicleKnowledgeCard(
     }
 
     TechnicalCard(
-        accentColor = GriffinRed,
+        accentColor = MaterialTheme.colorScheme.primary,
         onClick = { expanded = !expanded },
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -520,21 +513,18 @@ private fun VehicleKnowledgeCard(
                     Icon(
                         imageVector = Icons.Default.Train,
                         contentDescription = null,
-                        tint = GriffinRed,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = item.vehicleType,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        ),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                StatusBadge(text = daysText, color = GriffinRed)
+                StatusBadge(text = daysText, color = MaterialTheme.colorScheme.primary)
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -583,9 +573,8 @@ private fun VehicleKnowledgeCard(
                     )
                     item.duties.take(5).forEach { duty ->
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onDutyClick(duty.id) }
@@ -614,7 +603,7 @@ private fun VehicleKnowledgeCard(
                                 Text(
                                     text = "Szczegóły ›",
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = GriffinRed
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -630,6 +619,8 @@ private fun MonthHeader(group: MonthGroup) {
     val hours = group.totalOvertimeMinutes / 60
     val mins = group.totalOvertimeMinutes % 60
     val overtimeText = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val amberAccent = if (isDark) PantographAmber else PantographAmberDark
 
     Row(
         modifier = Modifier
@@ -640,16 +631,13 @@ private fun MonthHeader(group: MonthGroup) {
     ) {
         Text(
             text = group.displayMonth.uppercase(),
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            ),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "${group.duties.size} służb" + if (group.totalOvertimeMinutes > 0) " • +$overtimeText" else "",
-            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelMedium,
+            color = if (group.totalOvertimeMinutes > 0) amberAccent else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -681,10 +669,7 @@ private fun HistoryDutyItem(
             ) {
                 Text(
                     text = duty.date.format(dayFormatter),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    ),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -695,7 +680,7 @@ private fun HistoryDutyItem(
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                 modifier = Modifier
                     .width(1.dp)
                     .height(46.dp)
@@ -737,10 +722,7 @@ private fun HistoryDutyItem(
                         )
                         Text(
                             text = duty.displayVehiclesSummary,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = FontFamily.Monospace
-                            ),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -769,12 +751,8 @@ private fun HistoryDutyItem(
 
 @Composable
 private fun customSearchFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-    } else {
-        Color(0xFFCBD5E1)
-    },
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
     focusedContainerColor = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
     focusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -783,24 +761,8 @@ private fun customSearchFieldColors() = OutlinedTextFieldDefaults.colors(
 
 @Composable
 private fun customChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        GriffinRed.copy(alpha = 0.15f)
-    } else {
-        LightGriffinRedBg
-    },
-    selectedLabelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        GriffinRed
-    } else {
-        LightGriffinRedText
-    },
-    containerColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        Color.White
-    },
-    labelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        Color(0xFF1E293B)
-    }
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+    selectedLabelColor = MaterialTheme.colorScheme.primary,
+    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
