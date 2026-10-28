@@ -60,6 +60,110 @@ abstract class RailLogDatabase : RoomDatabase() {
             }
         }
 
+        // Eksperymentalny, nigdy niezcommitowany build z 26.10 podbił schemat bazy do wersji 4
+        // na części urządzeń. Aplikacja zostaje przy wersji 3, a ta migracja (downgrade) sprowadza
+        // bazę v4 z powrotem do dokładnego schematu v3, zachowując dane użytkownika (służby).
+        val MIGRATION_4_3 = object : Migration(4, 3) {
+            // Dokładna lista kolumn i SQL z wygenerowanej implementacji Rooma
+            // (RailLogDatabase_Impl.createAllTables) — Room waliduje schemat po migracji.
+            private val v3Columns = listOf(
+                "id", "date", "vehicleSeries", "vehicleNumber", "startTime", "endTime",
+                "dutyDurationMinutes", "legs", "routeSegments", "trainNumbers",
+                "overtimeMinutes", "isWholeDutyOvertime", "notes", "additionalNotes",
+                "createdAt", "updatedAt"
+            )
+
+            private val v3CreateTmpTableSql =
+                "CREATE TABLE `duties_v3_tmp` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`date` TEXT NOT NULL, `vehicleSeries` TEXT, `vehicleNumber` TEXT, " +
+                    "`startTime` TEXT, `endTime` TEXT, `dutyDurationMinutes` INTEGER NOT NULL, " +
+                    "`legs` TEXT NOT NULL, `routeSegments` TEXT NOT NULL, `trainNumbers` TEXT NOT NULL, " +
+                    "`overtimeMinutes` INTEGER NOT NULL, `isWholeDutyOvertime` INTEGER NOT NULL, " +
+                    "`notes` TEXT, `additionalNotes` TEXT, `createdAt` INTEGER NOT NULL, " +
+                    "`updatedAt` INTEGER NOT NULL)"
+
+            private val v3IndexSql = listOf(
+                "CREATE INDEX IF NOT EXISTS `index_duties_date` ON `duties` (`date`)",
+                "CREATE INDEX IF NOT EXISTS `index_duties_vehicleSeries` ON `duties` (`vehicleSeries`)",
+                "CREATE INDEX IF NOT EXISTS `index_duties_createdAt` ON `duties` (`createdAt`)"
+            )
+
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // a) Usuń obce tabele ewentualnie dodane przez eksperyment v4
+                val foreignTables = mutableListOf<String>()
+                db.query(
+                    "SELECT name FROM sqlite_master WHERE type = 'table' " +
+                        "AND name NOT LIKE 'sqlite_%' " +
+                        "AND name NOT IN ('duties', 'room_master_table')"
+                ).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        foreignTables.add(cursor.getString(0))
+                    }
+                }
+                for (table in foreignTables) {
+                    db.execSQL("DROP TABLE IF EXISTS `${table.replace("`", "``")}`")
+                }
+
+                // b) Znormalizuj duties do dokładnego zestawu kolumn v3
+                val existingColumns = mutableListOf<String>()
+                db.query("PRAGMA table_info(duties)").use { cursor ->
+                    val nameIndex = cursor.getColumnIndexOrThrow("name")
+                    while (cursor.moveToNext()) {
+                        existingColumns.add(cursor.getString(nameIndex))
+                    }
+                }
+
+                if (!existingColumns.toSet().containsAll(v3Columns)) {
+                    val missing = v3Columns.filter { it !in existingColumns.toSet() }
+                    throw IllegalStateException(
+                        "MIGRATION_4_3: tabela duties nie zawiera kolumn wersji 3: $missing " +
+                            "(znalezione kolumny: $existingColumns). " +
+                            "Przerywam migrację, aby nie zgadywać nieznanego schematu."
+                    )
+                }
+
+                if (existingColumns.toSet() != v3Columns.toSet()) {
+                    // duties ma dodatkowe kolumny (nadzbiór v3) → odtwórz tabelę w schemacie v3,
+                    // przenosząc wszystkie wiersze
+                    db.execSQL("DROP TABLE IF EXISTS `duties_v3_tmp`")
+                    db.execSQL(v3CreateTmpTableSql)
+                    val columnList = v3Columns.joinToString(", ") { "`$it`" }
+                    db.execSQL(
+                        "INSERT INTO `duties_v3_tmp` ($columnList) SELECT $columnList FROM `duties`"
+                    )
+                    db.execSQL("DROP TABLE `duties`")
+                    db.execSQL("ALTER TABLE `duties_v3_tmp` RENAME TO `duties`")
+                } else {
+                    // Kolumny już się zgadzają (najczęstszy przypadek: eksperyment zmienił
+                    // tylko numer wersji) — usuń ewentualne dodatkowe indeksy na duties,
+                    // aby walidacja schematu Rooma przeszła
+                    val expectedIndices = setOf(
+                        "index_duties_date",
+                        "index_duties_vehicleSeries",
+                        "index_duties_createdAt"
+                    )
+                    val extraIndices = mutableListOf<String>()
+                    db.query("PRAGMA index_list(`duties`)").use { cursor ->
+                        val nameIndex = cursor.getColumnIndexOrThrow("name")
+                        val originIndex = cursor.getColumnIndexOrThrow("origin")
+                        while (cursor.moveToNext()) {
+                            // origin 'c' = indeks z CREATE INDEX ('u'/'pk' to automatyczne)
+                            val name = cursor.getString(nameIndex)
+                            if (cursor.getString(originIndex) == "c" && name !in expectedIndices) {
+                                extraIndices.add(name)
+                            }
+                        }
+                    }
+                    for (indexName in extraIndices) {
+                        db.execSQL("DROP INDEX IF EXISTS `${indexName.replace("`", "``")}`")
+                    }
+                }
+
+                // c) Odtwórz indeksy v3 dokładnie tak, jak generuje je Room
+                v3IndexSql.forEach { db.execSQL(it) }
+            }
+        }
+
         fun getDatabase(context: Context): RailLogDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -67,7 +171,7 @@ abstract class RailLogDatabase : RoomDatabase() {
                     RailLogDatabase::class.java,
                     "raillog.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_3)
                     .build()
                 INSTANCE = instance
                 instance
