@@ -509,10 +509,18 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Autor: Mateusz Szerszeń",
+                            text = "Stworzone przez NIVEMI — Mateusz Szerszeń",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (BuildConfig.PLK_API_KEY.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Dane o pociągach: PKP Polskie Linie Kolejowe S.A.",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

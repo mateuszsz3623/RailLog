@@ -23,8 +23,8 @@ android {
         applicationId = "pl.raillog.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "2.2.1"
+        versionCode = 9
+        versionName = "2.3.0"
 
         // Klucz API PLK: tylko z właściwości Gradle lub zmiennej środowiskowej, nigdy z repo
         val plkApiKey = secret("RAILLOG_PLK_API_KEY", "PLK_API_KEY") ?: ""

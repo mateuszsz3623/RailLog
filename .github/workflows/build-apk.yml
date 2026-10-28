@@ -131,9 +131,11 @@ jobs:
           body: |
             ### Wersja **${{ steps.ver.outputs.version }}**
 
-            ## 🚆 RailLog — Prywatny dziennik służb maszynisty na Androida
+            ## 🚆 RailLog — Twój dziennik służb
 
-            RailLog to elegancka aplikacja dla maszynistów kolejowych do rejestrowania służb: odcinki trasy z pojazdami trakcyjnymi (seria + numer), czas trwania, nadgodziny i statystyki miesięczne. Działa w 100% offline — bez kont, chmury i telemetrii, a dane zostają wyłącznie na Twoim telefonie. Eksport do CSV pod polski Excel oraz pełny backup JSON z przywracaniem.
+            Prosty, szybki dziennik służb maszynisty na Androida: odcinki trasy z pojazdami, godziny i nadgodziny, plan służb z pliku .ics, statystyki oraz podgląd pociągu na żywo. Bez kont i reklam; dane zostają na telefonie. Eksport do CSV pod polski Excel i kopia JSON z przywracaniem.
+
+            Stworzone przez NIVEMI — Mateusz Szerszeń
 
             ### 📲 Pliki
             - **[RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)** — wersja produkcyjna (**zalecana**)
@@ -182,7 +184,11 @@ jobs:
 
           ## Pliki
           - **RailLog-release.apk** — wersja produkcyjna (**zalecana**)
-          - **RailLog-debug.apk** — wersja diagnostyczna (do testów)
+          - **RailLog-debug.apk** — wersja diagnostyczna (osobna aplikacja „RailLog Debug", do testów)
+
+          Prosty, szybki dziennik służb maszynisty. Aktualizacja instaluje się ponad starą wersją bez utraty danych.
+
+          Stworzone przez NIVEMI — Mateusz Szerszeń
 
           ---
 

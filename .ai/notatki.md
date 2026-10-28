@@ -21,6 +21,8 @@
 - **Scalenie do `main` = publikacja nowego APK** w GitHub Releases. Wersjonowany tag `v*` tylko za wyraźną zgodą właściciela.
 - Architekt nie widzi obrazów wprost — zrzuty przegłada narzędziami wizyjnymi MCP (zai-mcp-server), gdy trzeba.
 - Właściciel jest początkujący: tłumaczyć prosto, po polsku.
+- **Repo prywatne od 28.10.** Klucz API PLK w sekrecie GitHuba `PLK_API_KEY` i lokalnie w `~/.gradle/gradle.properties` (`RAILLOG_PLK_API_KEY`); wbudowywany w każdy build (bez warunku na widoczność repo — decyzja właściciela). Przy upublicznieniu repo APK z wydań zawierają klucz (wtedy usunąć wydania i wygenerować nowy klucz).
+- Baza Room w wersji 5 (plan służb + numer służby); kopia zapasowa Google włączona.
 
 ## TODO
 
