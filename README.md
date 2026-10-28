@@ -13,10 +13,12 @@ Filozofia projektowa: **Premium Fintech × Technical Precision × Railway Identi
 
 ## 📲 Pobierz aktualną wersję
 
-**Aktualna wersja: 2.1.1**
+**Aktualna wersja: 2.2.0**
 
 > ### 👉 [**Pobierz RailLog-release.apk**](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)
 > *(najnowsza wersja produkcyjna, automatycznie budowana z gałęzi `main`)*
+
+Alternatywnie bezpośrednio z repo (gałąź `apk-latest`, zawsze najnowsze): [RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/raw/apk-latest/RailLog-release.apk)
 
 **Instalacja krok po kroku:**
 1. Pobierz plik `RailLog-release.apk` na telefon (link powyżej albo z zakładki [Releases](https://github.com/mateuszsz3623/RailLog/releases)).
