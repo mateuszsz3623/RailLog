@@ -72,13 +72,9 @@ jobs:
           mkdir -p dist
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
             cp app/build/outputs/apk/release/app-release.apk dist/RailLog-release.apk
-            cp app/build/outputs/apk/release/app-release.apk dist/RailLog-v2.1.1-release.apk
-            # Backwards compatibility copies
-            cp app/build/outputs/apk/release/app-release.apk dist/TaktRail-release.apk
           fi
           if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
             cp app/build/outputs/apk/debug/app-debug.apk dist/RailLog-debug.apk
-            cp app/build/outputs/apk/debug/app-debug.apk dist/TaktRail-debug.apk
           fi
           echo "Dist folder contents:"
           ls -lh dist
@@ -101,7 +97,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: "RailLog ${{ github.ref_name }} — Premium Redesign"
+          name: "RailLog ${{ github.ref_name }}"
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -110,6 +106,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean old assets in latest release
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ids=$(gh api repos/${{ github.repository }}/releases/tags/latest --jq '.assets[].id' 2>/dev/null || true)
+          for id in $ids; do gh api -X DELETE repos/${{ github.repository }}/releases/assets/$id || true; done
+
       - name: Publish GitHub Release (Latest on Main)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -117,12 +122,16 @@ jobs:
           tag_name: "latest"
           name: "RailLog — Najnowsza wersja (Automatyczne wydanie)"
           body: |
-            ## 🚆 RailLog — Nowoczesny Dziennik Służb Maszynisty
-            Automatyczna kompilacja z gałęzi `main`.
+            ## 🚆 RailLog — Prywatny dziennik służb maszynisty na Androida
 
-            ### 📲 Pobierz i zainstaluj:
-            - **[RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)** (Zalecana wersja instalacyjna)
-            - **[RailLog-debug.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-debug.apk)** (Wersja debugerska)
+            RailLog to elegancka aplikacja dla maszynistów kolejowych do rejestrowania służb: odcinki trasy z pojazdami trakcyjnymi (seria + numer), czas trwania, nadgodziny i statystyki miesięczne. Działa w 100% offline — bez kont, chmury i telemetrii, a dane zostają wyłącznie na Twoim telefonie. Eksport do CSV pod polski Excel oraz pełny backup JSON z przywracaniem.
+
+            ### 📲 Pliki
+            - **[RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)** — wersja produkcyjna (**zalecana**)
+            - **[RailLog-debug.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-debug.apk)** — wersja diagnostyczna (do testów)
+
+            ### 💡 Instalacja
+            Pobierz `RailLog-release.apk`, otwórz go na telefonie i zezwól na instalację z nieznanych źródeł. Aktualizacja instaluje się **ponad starą wersję bez utraty danych** — bez odinstalowywania aplikacji.
           draft: false
           prerelease: false
           files: |

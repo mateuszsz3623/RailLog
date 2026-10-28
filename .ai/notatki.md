@@ -24,7 +24,7 @@
 
 ## TODO
 
-- Po publikacji 2.1.1: właściciel instaluje z GitHub Releases i sprawdza na telefonie — start bez crasha, dane służb kompletne, nazwa RailLog, nowa ikona w launcherze.
+- Właściciel ręcznie na GitHubie: usunąć stare wydanie „TaktRail v2.0.0" (Releases → Delete) i ustawić opis repozytorium (About) + ewentualnie tematy (topics).
 
 ## Dostępy
 
