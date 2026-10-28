@@ -183,7 +183,7 @@ private fun PremiumDashboardHeader(formattedToday: String) {
                     ) {}
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "TAKTRAIL",
+                        text = "RAILLOG",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.2.sp
@@ -228,7 +228,7 @@ private fun PremiumDashboardHeader(formattedToday: String) {
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_taktrail_logo),
-                    contentDescription = "Logo TaktRail",
+                    contentDescription = "Logo RailLog",
                     modifier = Modifier.fillMaxSize()
                 )
             }
