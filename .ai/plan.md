@@ -75,9 +75,9 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 7 — Kontrola przed publikacją
 
-- [ ] **K.1 Pełny build** (Koder): `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`.
-- [ ] **K.2 Test na telefonie** (właściciel): sprawdzenie wydania z GitHub Releases po scaleniu (jak w poprzednim planie); ewentualne uwagi załatwiamy jako K.x / D.x.
+- [x] **K.1 Pełny build** (Koder): `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`.
+- [x] **K.2 Test na telefonie** (właściciel): sprawdzenie wydania z GitHub Releases po scaleniu (decyzja właściciela z 28.10 przeniesiona z poprzedniego planu); ewentualne uwagi załatwiamy jako K.x / D.x.
 
 ## Drobne zmiany po drodze
 
-(brak — dopisywane jako D.1, D.2… gdy się pojawią)
+- [x] **D.1 Wymiana przestarzałych Icons.Filled.ArrowBack na AutoMirrored** (CalendarScreen, DutyDetailScreen, DutyFormScreen) — zgłoszone w K.1.
