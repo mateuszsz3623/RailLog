@@ -1,5 +1,6 @@
 package pl.raillog.app.presentation.navigation
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -39,9 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -52,7 +53,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pl.raillog.app.core.designsystem.AppThemeMode
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.domain.repository.DutyRepository
 import pl.raillog.app.presentation.calendar.CalendarScreen
 import pl.raillog.app.presentation.dashboard.DashboardScreen
@@ -117,14 +117,14 @@ fun RailLogNavHost(
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 0.dp,
-                    shadowElevation = if (isDark) 0.dp else 8.dp,
-                    border = BorderStroke(1.dp, if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else Color(0xFFCBD5E1)),
+                    shadowElevation = if (isDark) 8.dp else 0.dp,
+                    border = if (isDark) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp)
+                            .height(64.dp)
                             .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
@@ -291,38 +291,43 @@ private fun CompactNavItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val activeColor = if (isDark) GriffinRed else Color(0xFFDC2626)
-    val inactiveColor = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF475569)
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val view = LocalView.current
 
     Column(
         modifier = modifier
-            .height(56.dp)
-            .clickable(onClick = onClick)
+            .fillMaxHeight()
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = if (selected) activeColor.copy(alpha = if (isDark) 0.15f else 0.10f) else Color.Transparent,
-            modifier = Modifier.size(width = 44.dp, height = 28.dp)
+            shape = RoundedCornerShape(50),
+            color = if (selected) {
+                activeColor.copy(alpha = if (isDark) 0.16f else 0.12f)
+            } else {
+                Color.Transparent
+            },
+            modifier = Modifier.size(width = 48.dp, height = 32.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
                     tint = if (selected) activeColor else inactiveColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = item.title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                fontSize = 11.sp
-            ),
+            style = MaterialTheme.typography.labelSmall,
             color = if (selected) activeColor else inactiveColor
         )
     }

@@ -1,32 +1,30 @@
 package pl.raillog.app.presentation.statistics
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DirectionsRailway
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -40,14 +38,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.designsystem.PantographAmberDark
+import pl.raillog.app.core.designsystem.component.BentoCard
+import pl.raillog.app.core.designsystem.component.CockpitNumber
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
-import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.SeriesStatItem
 import java.time.YearMonth
@@ -61,6 +60,9 @@ fun StatisticsScreen(
 ) {
     val stats by viewModel.statistics.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
+
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val amberAccent = if (isDark) PantographAmber else PantographAmberDark
 
     val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("pl"))
     val currentYm = YearMonth.now()
@@ -105,7 +107,11 @@ fun StatisticsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = viewModel::selectPreviousMonth) {
-                                Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Poprzedni miesiąc")
+                                Icon(
+                                    imageVector = Icons.Default.ChevronLeft,
+                                    contentDescription = "Poprzedni miesiąc",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -117,12 +123,16 @@ fun StatisticsScreen(
                                 Text(
                                     text = periodTitle,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = GriffinRed
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
 
                             IconButton(onClick = viewModel::selectNextMonth) {
-                                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Następny miesiąc")
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Następny miesiąc",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
 
@@ -166,29 +176,36 @@ fun StatisticsScreen(
 
             // Section: KPI Summary for selected period
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatMetricCard(
-                        title = "Służby w okresie",
-                        value = "${stats.totalDuties}",
-                        accentColor = GriffinRed,
-                        icon = Icons.Default.DirectionsRailway,
-                        modifier = Modifier.weight(1f)
-                    )
+                FormSectionHeader(title = "ZESTAWIENIE OKRESU")
+                val (overtimeValue, overtimeUnit) = cockpitHoursMinutes(stats.totalOvertimeMinutes)
 
-                    val totalHours = stats.totalOvertimeMinutes / 60
-                    val totalMins = stats.totalOvertimeMinutes % 60
-                    val overtimeStr = if (totalHours > 0) "${totalHours}h ${totalMins}m" else "${totalMins}m"
+                BentoCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CockpitNumber(
+                            value = "${stats.totalDuties}",
+                            unit = if (stats.totalDuties == 1) "służba" else "służb",
+                            label = "SŁUŻBY W OKRESIE",
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    StatMetricCard(
-                        title = "Suma nadgodzin",
-                        value = if (stats.totalOvertimeMinutes > 0) overtimeStr else "0 min",
-                        accentColor = if (stats.totalOvertimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant,
-                        icon = Icons.Default.Schedule,
-                        modifier = Modifier.weight(1f)
-                    )
+                        CockpitNumberMedium(
+                            value = overtimeValue,
+                            unit = overtimeUnit,
+                            label = "NADGODZINY",
+                            accentColor = if (stats.totalOvertimeMinutes > 0) {
+                                amberAccent
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -226,17 +243,14 @@ fun StatisticsScreen(
                                 ) {
                                     Text(
                                         text = "${index + 1}. ${route.route}",
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                        style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Text(
                                         text = "${route.count} razy",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = GriffinRed
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -260,9 +274,8 @@ fun StatisticsScreen(
                                 val ot = if (h > 0) "${h}h ${min}m" else "${min}m"
 
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
@@ -288,11 +301,8 @@ fun StatisticsScreen(
                                         )
                                         Text(
                                             text = "${m.dutiesCount} służb" + if (m.overtimeMinutes > 0) " • +$ot" else "",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontFamily = FontFamily.Monospace,
-                                                fontWeight = FontWeight.Bold
-                                            ),
-                                            color = if (m.overtimeMinutes > 0) PantographAmber else MaterialTheme.colorScheme.onSurfaceVariant
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (m.overtimeMinutes > 0) amberAccent else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -309,51 +319,53 @@ fun StatisticsScreen(
     }
 }
 
+/**
+ * Mini-wariant [CockpitNumber] na displayMedium (34 sp, mono ze skali typografii) —
+ * do ciaśniejszych kafli bento (nadgodziny).
+ */
 @Composable
-private fun StatMetricCard(
-    title: String,
+private fun CockpitNumberMedium(
     value: String,
-    accentColor: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    unit: String? = null,
+    label: String? = null,
+    accentColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier
 ) {
-    TechnicalCard(
-        accentColor = accentColor,
-        modifier = modifier
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.8.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(17.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                ),
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.displayMedium,
+                color = accentColor,
+                modifier = Modifier.alignByBaseline()
+            )
+            if (unit != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+/** Minuty → para (wartość, jednostka) dla liczb kokpitowych: „8h"+"30m", „8h", „45"+"min", „0"+"min". */
+private fun cockpitHoursMinutes(minutes: Int?): Pair<String, String?> = when {
+    minutes == null -> "—" to null
+    minutes <= 0 -> "0" to "min"
+    minutes / 60 > 0 && minutes % 60 > 0 -> "${minutes / 60}h" to "${minutes % 60}m"
+    minutes / 60 > 0 -> "${minutes / 60}h" to null
+    else -> "$minutes" to "min"
 }
 
 @Composable
@@ -366,36 +378,39 @@ private fun SeriesProgressRow(item: SeriesStatItem) {
         ) {
             Text(
                 text = item.series,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             val percent = (item.percentage * 100).toInt()
             Text(
                 text = "${item.count} służb ($percent%)",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
-        LinearProgressIndicator(
-            progress = { item.percentage },
+        // Cienki pasek udziału — wzór MonthPaceBar z Dashboardu
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = GriffinRed,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(item.percentage.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
     }
 }
 
 @Composable
 private fun customChipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = GriffinRed.copy(alpha = 0.12f),
-    selectedLabelColor = GriffinRed,
+    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+    selectedLabelColor = MaterialTheme.colorScheme.primary,
     containerColor = MaterialTheme.colorScheme.surfaceVariant,
     labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )

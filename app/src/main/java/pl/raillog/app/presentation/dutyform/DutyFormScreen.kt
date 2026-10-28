@@ -5,7 +5,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,24 +25,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsRailway
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Train
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -64,18 +60,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
-import pl.raillog.app.core.designsystem.SignalGreen
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
@@ -123,7 +113,7 @@ fun DutyFormScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Wróć")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -136,7 +126,6 @@ fun DutyFormScreen(
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                 modifier = Modifier.navigationBarsPadding().imePadding()
             ) {
                 Box(
@@ -179,7 +168,7 @@ fun DutyFormScreen(
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = null,
-                                tint = GriffinRed,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -219,7 +208,7 @@ fun DutyFormScreen(
                         Text(
                             text = "Szablon z historii",
                             style = MaterialTheme.typography.labelSmall,
-                            color = GriffinRed
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -259,8 +248,8 @@ fun DutyFormScreen(
                     text = "+ DODAJ KOLEJNY ODCINEK",
                     onClick = viewModel::addLeg,
                     icon = Icons.Default.Add,
-                    contentColor = GriffinRed,
-                    borderColor = GriffinRed.copy(alpha = 0.6f)
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 )
             }
 
@@ -296,9 +285,8 @@ fun DutyFormScreen(
                 if (state.displayDuration != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -308,7 +296,7 @@ fun DutyFormScreen(
                             Icon(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = null,
-                                tint = GriffinRed,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -352,8 +340,8 @@ fun DutyFormScreen(
                                 checked = state.isWholeDutyOvertime,
                                 onCheckedChange = viewModel::setWholeDutyOvertime,
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = GriffinRed,
-                                    checkedTrackColor = GriffinRed.copy(alpha = 0.3f)
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                                 )
                             )
                         }
@@ -455,10 +443,7 @@ fun DutyFormScreen(
                                     val m = state.totalOvertimeMinutes % 60
                                     Text(
                                         text = "Łącznie: +$h h ${m.toString().padStart(2, '0')} min",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.Monospace
-                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = PantographAmber
                                     )
                                 }
@@ -484,7 +469,7 @@ fun DutyFormScreen(
                         Column {
                             Text(
                                 text = "NOTATKI I UWAGI ZE SZLAKU",
-                                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.sp),
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
@@ -563,7 +548,7 @@ fun DutyFormScreen(
                         showDatePicker = false
                     }
                 ) {
-                    Text("WYBIERZ", color = GriffinRed, fontWeight = FontWeight.Bold)
+                    Text("WYBIERZ", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -589,7 +574,7 @@ private fun LegInputCard(
     onSwap: () -> Unit
 ) {
     TechnicalCard(
-        accentColor = GriffinRed,
+        accentColor = MaterialTheme.colorScheme.primary,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -600,7 +585,7 @@ private fun LegInputCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusBadge(text = "ODCINEK ${index + 1}", color = GriffinRed)
+                    StatusBadge(text = "ODCINEK ${index + 1}", color = MaterialTheme.colorScheme.primary)
                 }
                 if (canDelete) {
                     IconButton(
@@ -653,7 +638,7 @@ private fun LegInputCard(
                     Icon(
                         imageVector = Icons.Default.SwapVert,
                         contentDescription = "Odwróć stacje",
-                        tint = GriffinRed
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -724,20 +709,12 @@ private fun LegInputCard(
 
 @Composable
 private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = GriffinRed,
-    unfocusedBorderColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-    } else {
-        Color(0xFFCBD5E1)
-    },
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
     focusedContainerColor = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
     focusedTextColor = MaterialTheme.colorScheme.onSurface,
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-    focusedLabelColor = GriffinRed,
-    unfocusedLabelColor = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        Color(0xFF475569)
-    }
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )

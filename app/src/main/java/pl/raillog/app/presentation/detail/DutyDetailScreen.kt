@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,12 +19,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsRailway
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Note
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material3.AlertDialog
@@ -50,18 +49,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
-import pl.raillog.app.core.designsystem.SignalGreen
-import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.designsystem.PantographAmberDark
+import pl.raillog.app.core.designsystem.component.BentoCard
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
-import pl.raillog.app.domain.model.Duty
 import pl.raillog.app.domain.model.DutyLeg
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -76,6 +72,9 @@ fun DutyDetailScreen(
     val duty by viewModel.duty.collectAsState()
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val amberAccent = if (isDark) PantographAmber else PantographAmberDark
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,7 +86,7 @@ fun DutyDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Wróć")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
                     }
                 },
                 actions = {
@@ -109,8 +108,7 @@ fun DutyDetailScreen(
             if (duty != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    tonalElevation = 6.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -158,6 +156,14 @@ fun DutyDetailScreen(
             val d = duty!!
             val polishDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
             val formattedDate = d.date.format(polishDateFormatter).replaceFirstChar { it.uppercase() }
+            val isOvertime = d.overtimeMinutes > 0 || d.isWholeDutyOvertime
+            val timeRange = if (!d.startTime.isNullOrBlank() && !d.endTime.isNullOrBlank()) {
+                "${d.startTime} — ${d.endTime}"
+            } else {
+                d.startTime ?: d.endTime
+            }
+            val (durationValue, durationUnit) =
+                cockpitHoursMinutes(d.calculatedDurationMinutes ?: d.dutyDurationMinutes)
 
             LazyColumn(
                 modifier = Modifier
@@ -166,94 +172,77 @@ fun DutyDetailScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // Kokpit czasu: data + zakres godzin + czas służby w jednym kaflu
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
-                    // Header Date & Overtime Badge
-                    TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                    BentoCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.Bottom
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "DATA SŁUŻBY",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = formattedDate,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.titleLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                            }
-                            if (d.overtimeMinutes > 0 || d.isWholeDutyOvertime) {
-                                StatusBadge(
-                                    text = d.displayOvertime,
-                                    color = PantographAmber
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Shift Working Hours Block (if start/end time provided)
-                if (!d.startTime.isNullOrBlank() || !d.endTime.isNullOrBlank() || d.displayDuration != null) {
-                    item {
-                        TechnicalCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "CZAS PRACY",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                if (!timeRange.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Default.Schedule,
                                             contentDescription = null,
-                                            tint = GriffinRed,
-                                            modifier = Modifier.size(20.dp)
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        val timeRange = if (!d.startTime.isNullOrBlank() && !d.endTime.isNullOrBlank()) {
-                                            "${d.startTime} — ${d.endTime}"
-                                        } else {
-                                            d.startTime ?: d.endTime ?: ""
-                                        }
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = timeRange,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = FontFamily.Monospace
-                                            ),
+                                            style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
-
-                                    if (d.displayDuration != null) {
-                                        StatusBadge(
-                                            text = d.displayDuration!!,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                        )
-                                    }
                                 }
+                                if (isOvertime) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    StatusBadge(
+                                        text = d.displayOvertime,
+                                        color = PantographAmber
+                                    )
+                                }
+                            }
+
+                            // Prawa kolumna: czas służby, wyrównany do prawej i dołem
+                            Column(horizontalAlignment = Alignment.End) {
+                                CockpitNumberMedium(
+                                    value = durationValue,
+                                    unit = durationUnit,
+                                    accentColor = if (isOvertime) {
+                                        amberAccent
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                )
+                                Text(
+                                    text = "CZAS SŁUŻBY",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
 
-                // Ordered Route Legs with Visual Timeline
+                // Ordered Route Legs on Vertical Timeline
                 item {
                     TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -264,7 +253,7 @@ fun DutyDetailScreen(
                             ) {
                                 Text(
                                     text = "ODCINKI TRASY (${d.legs.size})",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
@@ -282,7 +271,7 @@ fun DutyDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Column {
                                     d.legs.forEachIndexed { index, leg ->
                                         LegTimelineItem(
                                             index = index,
@@ -297,14 +286,14 @@ fun DutyDetailScreen(
                     }
                 }
 
-                // Vehicles Summary Card (Equal weight, clean display)
+                // Vehicles Summary Card
                 if (d.allVehicles.isNotEmpty()) {
                     item {
                         TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = if (d.allVehicles.size > 1) "PODSUMOWANIE POJAZDÓW" else "POJAZD TRAKCYJNY",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -315,16 +304,13 @@ fun DutyDetailScreen(
                                     Icon(
                                         imageVector = Icons.Default.Train,
                                         contentDescription = null,
-                                        tint = GriffinRed,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = d.displayAllVehicles,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.Bold
-                                        ),
+                                        style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -340,7 +326,7 @@ fun DutyDetailScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = "UWAGI ZE SZLAKU",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -361,7 +347,7 @@ fun DutyDetailScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = "DODATKOWE PRYWATNE NOTATKI",
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
@@ -411,6 +397,10 @@ fun DutyDetailScreen(
     }
 }
 
+/**
+ * Pionowa oś czasu odcinka: po lewej kropka primary + linia do następnego odcinka,
+ * po prawej treść (badges, trasa, pojazd). Bez tła — strukturę zapewnia oś.
+ */
 @Composable
 private fun LegTimelineItem(
     index: Int,
@@ -418,52 +408,70 @@ private fun LegTimelineItem(
     fallbackVehicle: String,
     isLast: Boolean
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Header: Leg Index and Train Badge
+        // Kolumna osi: kropka + linia łącząca z następnym odcinkiem
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(top = 6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Treść odcinka
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else 16.dp)
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StatusBadge(text = "ODCINEK ${index + 1}", color = GriffinRed)
-
                 if (leg.trainNumber.isNotBlank()) {
                     StatusBadge(
                         text = "Poc. ${leg.trainNumber}",
-                        color = MaterialTheme.colorScheme.primary,
-                        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Station connection
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = CircleShape,
-                    color = GriffinRed,
-                    modifier = Modifier.size(8.dp)
-                ) {}
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = leg.routeText,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                StatusBadge(
+                    text = "ODCINEK ${index + 1}",
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = leg.routeText,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
 
             // Locomotive assigned to this specific leg
             val legVehicle = if (leg.displayVehicle != "—") leg.displayVehicle else fallbackVehicle
             if (legVehicle != "—") {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.DirectionsRailway,
@@ -474,14 +482,60 @@ private fun LegTimelineItem(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Pojazd: $legVehicle",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.SemiBold
-                        ),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
     }
+}
+
+/**
+ * Mini-wariant [pl.raillog.app.core.designsystem.component.CockpitNumber] na displayMedium
+ * (34 sp, mono ze skali typografii) — do ciaśniejszych kafli bento.
+ */
+@Composable
+private fun CockpitNumberMedium(
+    value: String,
+    unit: String? = null,
+    label: String? = null,
+    accentColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.displayMedium,
+                color = accentColor,
+                modifier = Modifier.alignByBaseline()
+            )
+            if (unit != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** Minuty → para (wartość, jednostka) dla liczb kokpitowych: „8h"+"30m", „8h", „45"+"min", „0"+"min". */
+private fun cockpitHoursMinutes(minutes: Int?): Pair<String, String?> = when {
+    minutes == null -> "—" to null
+    minutes <= 0 -> "0" to "min"
+    minutes / 60 > 0 && minutes % 60 > 0 -> "${minutes / 60}h" to "${minutes % 60}m"
+    minutes / 60 > 0 -> "${minutes / 60}h" to null
+    else -> "$minutes" to "min"
 }

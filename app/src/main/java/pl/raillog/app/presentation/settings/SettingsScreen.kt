@@ -65,7 +65,6 @@ import androidx.core.content.FileProvider
 import pl.raillog.app.BuildConfig
 import pl.raillog.app.R
 import pl.raillog.app.core.designsystem.AppThemeMode
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
@@ -145,7 +144,7 @@ fun SettingsScreen(
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = GriffinRed)
+                            Icon(imageVector = Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = "Wybór stylu wizualnego",
@@ -189,7 +188,7 @@ fun SettingsScreen(
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.TableChart, contentDescription = null, tint = GriffinRed)
+                            Icon(imageVector = Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
@@ -209,11 +208,11 @@ fun SettingsScreen(
                             onClick = viewModel::exportCsv,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, GriffinRed.copy(alpha = 0.6f))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                         ) {
-                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = GriffinRed)
+                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("GENERUJ PLIK CSV", color = GriffinRed, fontWeight = FontWeight.Bold)
+                            Text("GENERUJ PLIK CSV", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -255,7 +254,7 @@ fun SettingsScreen(
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = GriffinRed)
+                            Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
@@ -315,8 +314,7 @@ fun SettingsScreen(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color.Transparent,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.size(54.dp)
                             ) {
                                 Image(
@@ -338,7 +336,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "Dziennik służb maszynisty",
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = GriffinRed
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -366,7 +364,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            StatusBadge(text = "RailLog ${BuildConfig.VERSION_NAME}", color = GriffinRed)
+                            StatusBadge(text = "RailLog ${BuildConfig.VERSION_NAME}", color = MaterialTheme.colorScheme.primary)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -392,7 +390,7 @@ fun SettingsScreen(
                 pendingRestoreJson = null
             },
             icon = {
-                Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = GriffinRed)
+                Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
             title = {
                 Text(text = "Przywrócić kopię zapasową?", fontWeight = FontWeight.Bold)
@@ -446,8 +444,8 @@ private fun ThemeOptionRow(
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) GriffinRed.copy(alpha = 0.08f) else Color.Transparent,
-        border = if (selected) BorderStroke(1.dp, GriffinRed.copy(alpha = 0.5f)) else null,
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
+        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -461,7 +459,7 @@ private fun ThemeOptionRow(
             RadioButton(
                 selected = selected,
                 onClick = onClick,
-                colors = RadioButtonDefaults.colors(selectedColor = GriffinRed)
+                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column {

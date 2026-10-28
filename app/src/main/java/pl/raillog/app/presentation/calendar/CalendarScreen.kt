@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,11 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pl.raillog.app.core.designsystem.GriffinRed
 import pl.raillog.app.core.designsystem.PantographAmber
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.StatusBadge
@@ -83,7 +80,7 @@ fun CalendarScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Wróć")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -199,10 +196,7 @@ fun CalendarScreen(
                                     if (duty.displayVehicle != "—") {
                                         Text(
                                             text = "Pojazd: ${duty.displayVehicle}",
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontFamily = FontFamily.Monospace,
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
+                                            style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
@@ -258,8 +252,8 @@ private fun MonthGrid(
 
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) GriffinRed.copy(alpha = 0.15f) else Color.Transparent,
-                                border = if (isSelected) BorderStroke(1.5.dp, GriffinRed) else null,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
+                                border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clickable { onDateSelected(date) }
@@ -270,16 +264,15 @@ private fun MonthGrid(
                                 ) {
                                     Text(
                                         text = "${date.dayOfMonth}",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (isSelected || hasDuty) FontWeight.Bold else FontWeight.Normal,
-                                            fontFamily = FontFamily.Monospace
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = if (isSelected || hasDuty) FontWeight.Bold else FontWeight.Normal
                                         ),
-                                        color = if (isSelected) GriffinRed else MaterialTheme.colorScheme.onSurface
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
                                     if (hasDuty) {
                                         Surface(
                                             shape = CircleShape,
-                                            color = if (hasOvertime) PantographAmber else GriffinRed,
+                                            color = if (hasOvertime) PantographAmber else MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(5.dp)
                                         ) {}
                                     }
