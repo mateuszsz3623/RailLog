@@ -6,6 +6,7 @@
 
 - Aplikacja: **RailLog 2.2.0** (versionCode 7) — redesign **„KABINA"** (kokpit maszynisty) scalony do `main` z gałęzi `feature/redesign-kabina`: fonty Inter + JetBrains Mono wbudowane offline, bento-grid Dashboardu z liczbami kokpitowymi (CockpitNumber), karty bez ramek (BentoCard), dolny pasek z pigułką aktywności, Statystyki/Historia/Szczegóły/Formularz/Kalendarz/Ustawienia na kolorach motywu (zero hardcodowanych hexów), ciemny motyw wiodący. Logo/ikona bez zmian.
 - Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest"); główne pliki wydania nazywają się RailLog-release.apk / RailLog-debug.apk.
+- **Automatyzacja wersji (od 28.10)**: CI przy każdym wydaniu (1) wpisuje wersję w nazwę i treść wydania „latest", (2) botem github-actions[bot] synchronizuje linię „Aktualna wersja" w README, (3) przebudowuje gałąź-sierotę `apk-latest` — zawsze leży tam tylko najnowsze RailLog-release.apk, RailLog-debug.apk i POBIERZ.md (wersja + data). Link bezpośredni: `https://github.com/mateuszsz3623/RailLog/raw/apk-latest/RailLog-release.apk`.
 - Reguły pracy agentów (z Nordtherm, dostosowane do Androida) scalone do `main`.
 - Środowisko: JAVA_HOME wskazuje `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot` (jedyny JDK na dysku) — OK od 28.10. Lokalnie działa też assembleRelease (keystore lokalny dostępny).
 
