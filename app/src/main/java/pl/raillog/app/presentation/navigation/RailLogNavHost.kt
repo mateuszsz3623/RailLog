@@ -53,6 +53,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pl.raillog.app.core.designsystem.AppThemeMode
+import pl.raillog.app.core.network.PlkApiClient
 import pl.raillog.app.domain.repository.DutyRepository
 import pl.raillog.app.domain.repository.PlanRepository
 import pl.raillog.app.presentation.calendar.CalendarScreen
@@ -68,6 +69,8 @@ import pl.raillog.app.presentation.history.HistoryViewModel
 import pl.raillog.app.presentation.settings.SettingsScreen
 import pl.raillog.app.presentation.settings.SettingsViewModel
 import pl.raillog.app.presentation.statistics.StatisticsScreen
+import pl.raillog.app.presentation.trainstatus.TrainStatusScreen
+import pl.raillog.app.presentation.trainstatus.TrainStatusViewModel
 import pl.raillog.app.presentation.statistics.StatisticsViewModel
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -84,6 +87,7 @@ sealed class BottomNavItem(val screen: Screen, val title: String, val icon: Imag
 fun RailLogNavHost(
     repository: DutyRepository,
     planRepository: PlanRepository,
+    plkClient: PlkApiClient?,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit
 ) {
@@ -181,7 +185,10 @@ fun RailLogNavHost(
                     },
                     onSaveFromPlan = { plannedId ->
                         navController.navigate("duty_form?dutyId=0&plannedId=$plannedId")
-                    }
+                    },
+                    onCheckTrain = if (plkClient != null) {
+                        { number -> navController.navigate("train_status/$number") }
+                    } else null
                 )
             }
 
@@ -262,6 +269,9 @@ fun RailLogNavHost(
 
                 DutyFormScreen(
                     viewModel = vm,
+                    onOpenTrainStatus = if (plkClient != null) {
+                        { number, date -> navController.navigate("train_status/$number?date=$date") }
+                    } else null,
                     onNavigateBack = { navController.popBackStack() },
                     onSaveSuccess = {
                         navController.popBackStack()
@@ -291,8 +301,35 @@ fun RailLogNavHost(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToEdit = { id ->
                         navController.navigate("duty_form?dutyId=$id&prefilledVehicle=")
-                    }
+                    },
+                    onOpenTrainStatus = if (plkClient != null) {
+                        { number, date -> navController.navigate("train_status/$number?date=$date") }
+                    } else null
                 )
+            }
+
+            // Podgląd pociągu na żywo (tylko gdy jest klucz API)
+            if (plkClient != null) {
+                composable(
+                    route = "train_status/{number}?date={date}",
+                    arguments = listOf(
+                        navArgument("number") { type = NavType.StringType },
+                        navArgument("date") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { backStackEntry ->
+                    val number = backStackEntry.arguments?.getString("number").orEmpty()
+                    val date = backStackEntry.arguments?.getString("date")?.let {
+                        runCatching { java.time.LocalDate.parse(it) }.getOrNull()
+                    }
+                    val vm: TrainStatusViewModel = viewModel(
+                        factory = TrainStatusViewModel.Factory(plkClient, number, date)
+                    )
+                    TrainStatusScreen(viewModel = vm, onNavigateBack = { navController.popBackStack() })
+                }
             }
         }
     }

@@ -11,6 +11,10 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+fun secret(gradleName: String, envName: String): String? =
+    providers.gradleProperty(gradleName).orNull?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable(envName).orNull?.takeIf { it.isNotEmpty() }
+
 android {
     namespace = "pl.raillog.app"
     compileSdk = 35
@@ -22,6 +26,10 @@ android {
         versionCode = 8
         versionName = "2.2.1"
 
+        // Klucz API PLK: tylko z właściwości Gradle lub zmiennej środowiskowej, nigdy z repo
+        val plkApiKey = secret("RAILLOG_PLK_API_KEY", "PLK_API_KEY") ?: ""
+        buildConfigField("String", "PLK_API_KEY", "\"$plkApiKey\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -30,10 +38,6 @@ android {
 
     signingConfigs {
         create("release") {
-            fun secret(gradleName: String, envName: String): String? =
-                providers.gradleProperty(gradleName).orNull?.takeIf { it.isNotEmpty() }
-                    ?: providers.environmentVariable(envName).orNull?.takeIf { it.isNotEmpty() }
-
             val keystoreFile = rootProject.file("raillog-release.jks")
             val storePass = secret("RAILLOG_STORE_PASSWORD", "RELEASE_KEYSTORE_PASSWORD")
             val keyPass = secret("RAILLOG_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
