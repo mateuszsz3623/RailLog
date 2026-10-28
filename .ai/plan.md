@@ -41,7 +41,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 2 — Nawigacja
 
-- [ ] **2.1 Dolny pasek „kokpitowy"**
+- [x] **2.1 Dolny pasek „kokpitowy"**
   W `RailLogNavHost.kt`: wyższy pasek (64 dp), aktywna pozycja jako zaokrąglona pigułka za ikoną (proporcje kapsuły), bez sztywnej linii granicznej w dark (cień/ton tylko), etykiety w JetBrains Mono. Usunąć hardcodowane `Color(0xFFDC2626)`/`Color(0xFF475569)` → motyw.
   Pliki: `RailLogNavHost.kt`.
 
