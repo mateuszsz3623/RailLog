@@ -17,6 +17,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val repository = (application as RailLogApplication).dutyRepository
+        val planRepository = (application as RailLogApplication).planRepository
+        val plkClient = (application as RailLogApplication).plkClient
         val themePreferences = ThemePreferences(this)
 
         setContent {
@@ -25,6 +27,8 @@ class MainActivity : ComponentActivity() {
             RailLogTheme(themeMode = themeMode) {
                 RailLogNavHost(
                     repository = repository,
+                    planRepository = planRepository,
+                    plkClient = plkClient,
                     themeMode = themeMode,
                     onThemeModeChanged = { newMode ->
                         themePreferences.setThemeMode(newMode)

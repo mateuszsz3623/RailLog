@@ -1,5 +1,7 @@
 package pl.raillog.app.presentation.dutyform
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -34,6 +36,9 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Train
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,12 +65,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import pl.raillog.app.core.designsystem.PantographAmber
+import pl.raillog.app.core.util.DutyTimeCalculator
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.QuickChip
 import pl.raillog.app.core.designsystem.component.RailLogHeroButton
@@ -83,14 +91,20 @@ import java.util.Locale
 fun DutyFormScreen(
     viewModel: DutyFormViewModel,
     onNavigateBack: () -> Unit,
-    onSaveSuccess: () -> Unit
+    onSaveSuccess: () -> Unit,
+    onOpenTrainStatus: ((String, LocalDate) -> Unit)?
 ) {
     val state by viewModel.uiState.collectAsState()
+    val isDirty by viewModel.isDirty.collectAsState()
+    val context = LocalContext.current
     val frequentSeries by viewModel.frequentSeries.collectAsState()
     val recentVehicles by viewModel.recentVehicles.collectAsState()
     val recentRoutes by viewModel.recentRoutes.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    var startFocused by remember { mutableStateOf(false) }
+    var endFocused by remember { mutableStateOf(false) }
     var notesExpanded by remember { mutableStateOf(state.notes.isNotBlank() || state.additionalNotes.isNotBlank()) }
 
     LaunchedEffect(Unit) {
@@ -98,6 +112,44 @@ fun DutyFormScreen(
             onSaveSuccess()
         }
     }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val requestExit = {
+        if (isDirty) showDiscardDialog = true else onNavigateBack()
+    }
+    BackHandler(enabled = isDirty && !state.isSaving) { showDiscardDialog = true }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text(text = "Odrzucić zmiany?", fontWeight = FontWeight.Bold) },
+            text = { Text("Wpisane dane nie zostały zapisane i zostaną utracone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDiscardDialog = false
+                        onNavigateBack()
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("ODRZUĆ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text("ZOSTAŃ")
+                }
+            }
+        )
+    }
+
+    // Podgląd pociągu działa dla służby z dzisiaj lub wczoraj
+    val trainStatusAllowed = state.date == LocalDate.now() || state.date == LocalDate.now().minusDays(1)
 
     val polishDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
     val formattedDate = state.date.format(polishDateFormatter).replaceFirstChar { it.uppercase() }
@@ -112,7 +164,7 @@ fun DutyFormScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { requestExit() }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Wróć")
                     }
                 },
@@ -196,6 +248,20 @@ fun DutyFormScreen(
                 }
             }
 
+            // Numer służby (opcjonalnie)
+            item {
+                OutlinedTextField(
+                    value = state.dutyCode,
+                    onValueChange = viewModel::onDutyCodeChanged,
+                    label = { Text("NUMER SŁUŻBY (OPCJONALNIE)") },
+                    placeholder = { Text("np. 135") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+                    colors = customTextFieldColors()
+                )
+            }
+
             // Section 2: MULTI-SEGMENT ROUTE WITH LEGS (ODCINKI TRASY & POJAZDY NA ODCINKACH)
             item {
                 Row(
@@ -237,7 +303,10 @@ fun DutyFormScreen(
                             recentVehicles = recentVehicles,
                             onUpdate = { updated -> viewModel.updateLeg(index, updated) },
                             onDelete = { viewModel.removeLeg(index) },
-                            onSwap = { viewModel.swapLegStations(index) }
+                            onSwap = { viewModel.swapLegStations(index) },
+                            onTrainStatus = if (onOpenTrainStatus != null && trainStatusAllowed && leg.trainNumber.any { it.isDigit() }) {
+                                { onOpenTrainStatus(leg.trainNumber.filter { it.isDigit() }, state.date) }
+                            } else null
                         )
                     }
                 }
@@ -260,25 +329,48 @@ fun DutyFormScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val startError = !startFocused && state.startTime.isNotBlank() &&
+                        DutyTimeCalculator.normalizeTimeInput(state.startTime) == null
                     OutlinedTextField(
                         value = state.startTime,
                         onValueChange = viewModel::onStartTimeChanged,
                         label = { Text("Rozpoczęcie (np. 22:00)") },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (startFocused && !it.isFocused) viewModel.normalizeTimes()
+                            startFocused = it.isFocused
+                        },
                         singleLine = true,
                         placeholder = { Text("06:00") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                        isError = startError,
+                        supportingText = if (startError) ({ Text("Wpisz godzinę, np. 06:15") }) else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         colors = customTextFieldColors()
                     )
+                    val endError = !endFocused && state.endTime.isNotBlank() &&
+                        DutyTimeCalculator.normalizeTimeInput(state.endTime) == null
                     OutlinedTextField(
                         value = state.endTime,
                         onValueChange = viewModel::onEndTimeChanged,
                         label = { Text("Zakończenie (np. 06:15)") },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (endFocused && !it.isFocused) viewModel.normalizeTimes()
+                            endFocused = it.isFocused
+                        },
                         singleLine = true,
                         placeholder = { Text("14:30") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                        isError = endError,
+                        supportingText = if (endError) ({ Text("Wpisz godzinę, np. 06:15") }) else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         colors = customTextFieldColors()
+                    )
+                }
+
+                state.plannedHint?.let { hint ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -571,7 +663,8 @@ private fun LegInputCard(
     recentVehicles: List<String>,
     onUpdate: (LegFormState) -> Unit,
     onDelete: () -> Unit,
-    onSwap: () -> Unit
+    onSwap: () -> Unit,
+    onTrainStatus: (() -> Unit)?
 ) {
     TechnicalCard(
         accentColor = MaterialTheme.colorScheme.primary,
@@ -657,6 +750,13 @@ private fun LegInputCard(
                     placeholder = { Text("np. 3560") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
+                    trailingIcon = onTrainStatus?.let { open ->
+                        {
+                            IconButton(onClick = open) {
+                                Icon(imageVector = Icons.Default.Visibility, contentDescription = "Podgląd pociągu")
+                            }
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
                     colors = customTextFieldColors()
                 )

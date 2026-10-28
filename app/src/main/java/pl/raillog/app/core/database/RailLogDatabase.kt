@@ -8,18 +8,22 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import pl.raillog.app.core.database.dao.DutyDao
+import pl.raillog.app.core.database.dao.PlannedDutyDao
 import pl.raillog.app.core.database.entity.DutyEntity
+import pl.raillog.app.core.database.entity.PlannedDutyEntity
 import pl.raillog.app.core.util.VehicleStringParser
 
 @Database(
-    entities = [DutyEntity::class],
-    version = 3,
-    exportSchema = false
+    entities = [DutyEntity::class, PlannedDutyEntity::class],
+    version = 5,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class RailLogDatabase : RoomDatabase() {
 
     abstract fun dutyDao(): DutyDao
+
+    abstract fun plannedDutyDao(): PlannedDutyDao
 
     companion object {
         @Volatile
@@ -143,13 +147,14 @@ abstract class RailLogDatabase : RoomDatabase() {
                         "index_duties_createdAt"
                     )
                     val extraIndices = mutableListOf<String>()
-                    db.query("PRAGMA index_list(`duties`)").use { cursor ->
-                        val nameIndex = cursor.getColumnIndexOrThrow("name")
-                        val originIndex = cursor.getColumnIndexOrThrow("origin")
+                    // Indeksy z CREATE INDEX mają sql w sqlite_master (automatyczne nie)
+                    db.query(
+                        "SELECT name FROM sqlite_master WHERE type = 'index' " +
+                            "AND tbl_name = 'duties' AND sql IS NOT NULL"
+                    ).use { cursor ->
                         while (cursor.moveToNext()) {
-                            // origin 'c' = indeks z CREATE INDEX ('u'/'pk' to automatyczne)
-                            val name = cursor.getString(nameIndex)
-                            if (cursor.getString(originIndex) == "c" && name !in expectedIndices) {
+                            val name = cursor.getString(0)
+                            if (name !in expectedIndices) {
                                 extraIndices.add(name)
                             }
                         }
@@ -164,6 +169,29 @@ abstract class RailLogDatabase : RoomDatabase() {
             }
         }
 
+        // 3 -> 5: numer służby w duties i tabela planu służb (SQL jak w app/schemas/.../5.json).
+        // Wersji 4 nie używamy w aplikacji (istniała tylko w eksperymencie).
+        val MIGRATION_3_5 = object : Migration(3, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE duties ADD COLUMN dutyCode TEXT DEFAULT NULL")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `planned_duties` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`uid` TEXT NOT NULL, `code` TEXT NOT NULL, `kind` TEXT NOT NULL, `date` TEXT NOT NULL, " +
+                        "`startAt` INTEGER NOT NULL, `endAt` INTEGER NOT NULL, `importedAt` INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_planned_duties_uid` ON `planned_duties` (`uid`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_planned_duties_date` ON `planned_duties` (`date`)")
+            }
+        }
+
+        // Room przy aktualizacji nie schodzi „w dół”, więc 4 -> 5 = najpierw 4 -> 3, potem 3 -> 5.
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_4_3.migrate(db)
+                MIGRATION_3_5.migrate(db)
+            }
+        }
+
         fun getDatabase(context: Context): RailLogDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -171,7 +199,7 @@ abstract class RailLogDatabase : RoomDatabase() {
                     RailLogDatabase::class.java,
                     "raillog.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_5, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance

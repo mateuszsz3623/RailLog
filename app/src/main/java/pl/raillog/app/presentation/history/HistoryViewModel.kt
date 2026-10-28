@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import pl.raillog.app.domain.model.Duty
 import pl.raillog.app.domain.model.DutyFilter
 import pl.raillog.app.domain.model.DutyFilterType
@@ -107,12 +106,6 @@ class HistoryViewModel(
 
     fun onFilterTypeChanged(type: DutyFilterType) {
         _filterState.update { it.copy(filterType = type) }
-    }
-
-    fun deleteDuty(id: Long) {
-        viewModelScope.launch {
-            repository.deleteDuty(id)
-        }
     }
 
     class Factory(private val repository: DutyRepository) : ViewModelProvider.Factory {

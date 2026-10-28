@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.DirectionsRailway
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
@@ -67,7 +68,8 @@ import java.util.Locale
 fun DutyDetailScreen(
     viewModel: DutyDetailViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToEdit: (Long) -> Unit
+    onNavigateToEdit: (Long) -> Unit,
+    onOpenTrainStatus: ((String, java.time.LocalDate) -> Unit)?
 ) {
     val duty by viewModel.duty.collectAsState()
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -157,6 +159,7 @@ fun DutyDetailScreen(
             val polishDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
             val formattedDate = d.date.format(polishDateFormatter).replaceFirstChar { it.uppercase() }
             val isOvertime = d.overtimeMinutes > 0 || d.isWholeDutyOvertime
+            val trainStatusAllowed = d.date == java.time.LocalDate.now() || d.date == java.time.LocalDate.now().minusDays(1)
             val timeRange = if (!d.startTime.isNullOrBlank() && !d.endTime.isNullOrBlank()) {
                 "${d.startTime} — ${d.endTime}"
             } else {
@@ -195,6 +198,14 @@ fun DutyDetailScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                d.displayDutyCode?.let { code ->
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = code,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                                 if (!timeRange.isNullOrBlank()) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +288,10 @@ fun DutyDetailScreen(
                                             index = index,
                                             leg = leg,
                                             fallbackVehicle = d.displayVehicle,
-                                            isLast = index == d.legs.size - 1
+                                            isLast = index == d.legs.size - 1,
+                                            onTrainStatus = if (onOpenTrainStatus != null && trainStatusAllowed && leg.trainNumber.any { it.isDigit() }) {
+                                                { onOpenTrainStatus(leg.trainNumber.filter { it.isDigit() }, d.date) }
+                                            } else null
                                         )
                                     }
                                 }
@@ -406,7 +420,8 @@ private fun LegTimelineItem(
     index: Int,
     leg: DutyLeg,
     fallbackVehicle: String,
-    isLast: Boolean
+    isLast: Boolean,
+    onTrainStatus: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier
@@ -458,6 +473,15 @@ private fun LegTimelineItem(
                     text = "ODCINEK ${index + 1}",
                     color = MaterialTheme.colorScheme.primary
                 )
+                if (onTrainStatus != null) {
+                    IconButton(onClick = onTrainStatus, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = "Podgląd pociągu",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

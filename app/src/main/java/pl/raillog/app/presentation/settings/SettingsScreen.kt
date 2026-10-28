@@ -52,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,9 @@ import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,10 +84,13 @@ fun SettingsScreen(
     val context = LocalContext.current
     val isProcessing by viewModel.isProcessing.collectAsState()
 
-    val lastAutoBackupTime by viewModel.lastAutoBackupTime.collectAsState()
+    val autoBackupInfo by viewModel.autoBackupInfo.collectAsState()
+    val planInfo by viewModel.planInfo.collectAsState()
 
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
     var showUndoDialog by remember { mutableStateOf(false) }
+    var showClearPlanDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
 
     // File Picker for restoring backup
@@ -104,9 +111,72 @@ fun SettingsScreen(
         }
     }
 
+    // Import planu służb z pliku .ics (limit 2 MB, odczyt poza głównym wątkiem)
+    val planFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        val bytes = context.contentResolver.openInputStream(uri)?.use { readAtMost(it, MAX_PLAN_BYTES + 1) }
+                        when {
+                            bytes == null -> Result.failure(java.io.IOException("Nie można otworzyć pliku"))
+                            bytes.size > MAX_PLAN_BYTES -> Result.failure(java.io.IOException("Plik jest większy niż 2 MB"))
+                            else -> Result.success(String(bytes, Charsets.UTF_8))
+                        }
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                }
+                val text = result.getOrNull()
+                when {
+                    text == null -> Toast.makeText(
+                        context, "Błąd odczytu pliku: ${result.exceptionOrNull()?.localizedMessage}", Toast.LENGTH_LONG
+                    ).show()
+                    !text.contains("BEGIN:VCALENDAR", ignoreCase = true) -> Toast.makeText(
+                        context, "To nie jest plik kalendarza (.ics)", Toast.LENGTH_LONG
+                    ).show()
+                    else -> viewModel.importPlan(text)
+                }
+            }
+        }
+    }
+
+    // Zapis kopii JSON do pliku wskazanego przez użytkownika
+    var pendingFileContent by remember { mutableStateOf<String?>(null) }
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        val content = pendingFileContent
+        pendingFileContent = null
+        if (uri != null && content != null) {
+            scope.launch {
+                val error = withContext(Dispatchers.IO) {
+                    try {
+                        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(content.toByteArray(Charsets.UTF_8)) }
+                            ?: throw java.io.IOException("Nie można otworzyć pliku")
+                        null
+                    } catch (e: Exception) {
+                        e.localizedMessage ?: "nieznany błąd"
+                    }
+                }
+                Toast.makeText(
+                    context,
+                    if (error == null) "Zapisano kopię do pliku ✓" else "Błąd zapisu pliku: $error",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
+                is SettingsEvent.SaveToFile -> {
+                    pendingFileContent = event.content
+                    saveFileLauncher.launch(event.filename)
+                }
                 is SettingsEvent.ShareContent -> {
                     shareContent(context, event.content, event.mimeType, event.filename)
                 }
@@ -298,7 +368,18 @@ fun SettingsScreen(
                                 Text("PRZYWRÓĆ", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        lastAutoBackupTime?.let { millis ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = viewModel::saveJsonToFile,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Icon(imageVector = Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("ZAPISZ DO PLIKU", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        autoBackupInfo?.let { info ->
                             Spacer(modifier = Modifier.height(10.dp))
                             OutlinedButton(
                                 onClick = { showUndoDialog = true },
@@ -307,15 +388,52 @@ fun SettingsScreen(
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("COFNIJ OSTATNIE PRZYWRÓCENIE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text("PRZYWRÓĆ DANE SPRZED OSTATNIEJ ZMIANY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     Text(
-                                        text = "Kopia z " + java.time.Instant.ofEpochMilli(millis)
-                                            .atZone(java.time.ZoneId.systemDefault())
-                                            .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+                                        text = "Kopia z ${formatBackupTime(info.timestamp)} · ${info.dutiesCount} służb",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section: PLAN SŁUŻB (opcjonalnie)
+            item {
+                FormSectionHeader(title = "PLAN SŁUŻB (OPCJONALNIE)")
+                TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Jeśli pracodawca udostępnia plan w pliku .ics, wczytaj go. Bez pliku aplikacja działa normalnie.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { planFilePickerLauncher.launch(arrayOf("*/*")) },
+                            enabled = !isProcessing,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("IMPORTUJ PLAN (.ics)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        planInfo?.let { info ->
+                            val fmt = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Wczytany plan: ${info.from.format(fmt)} – ${info.to.format(fmt)} · ${info.count} służb",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            TextButton(onClick = { showClearPlanDialog = true }) {
+                                Text("WYCZYŚĆ PLAN", color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -368,14 +486,14 @@ fun SettingsScreen(
                             Icon(imageVector = Icons.Default.Security, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "100% Prywatności i Działanie Offline",
+                                text = "Prywatność",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "RailLog nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
+                            text = "Bez kont, reklam i trackerów. Dane są na telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google. Podgląd pociągów łączy się z API PLK tylko, gdy o to poprosisz.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -391,10 +509,18 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Autor: Mateusz Szerszeń",
+                            text = "Stworzone przez NIVEMI — Mateusz Szerszeń",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (BuildConfig.PLK_API_KEY.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Dane o pociągach: PKP Polskie Linie Kolejowe S.A.",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -405,6 +531,30 @@ fun SettingsScreen(
         }
     }
 
+    if (showClearPlanDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearPlanDialog = false },
+            title = { Text(text = "Wyczyścić plan służb?", fontWeight = FontWeight.Bold) },
+            text = { Text("Usuniemy tylko wczytany plan. Zapisane służby zostają bez zmian.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearPlanDialog = false
+                        viewModel.clearPlan()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("WYCZYŚĆ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearPlanDialog = false }) {
+                    Text("ANULUJ")
+                }
+            }
+        )
+    }
+
     if (showUndoDialog) {
         AlertDialog(
             onDismissRequest = { showUndoDialog = false },
@@ -412,10 +562,12 @@ fun SettingsScreen(
                 Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
             title = {
-                Text(text = "Cofnąć przywracanie?", fontWeight = FontWeight.Bold)
+                Text(text = "Przywrócić dane sprzed zmiany?", fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("Obecne dane zostaną zastąpione danymi sprzed ostatniego przywracania. Kontynuować?")
+                val info = autoBackupInfo
+                val backupLabel = info?.let { "${formatBackupTime(it.timestamp)} (${it.dutiesCount} służb)" } ?: "wybranej daty"
+                Text("Obecne dane zostaną zastąpione kopią z $backupLabel. Obecny stan też zapiszemy jako kopię awaryjną.")
             },
             confirmButton = {
                 Button(
@@ -425,7 +577,7 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("COFNIJ")
+                    Text("PRZYWRÓĆ")
                 }
             },
             dismissButton = {
@@ -488,6 +640,25 @@ fun SettingsScreen(
         )
     }
 }
+
+private const val MAX_PLAN_BYTES = 2 * 1024 * 1024
+
+/** Czyta strumień, ale nie więcej niż [limit] bajtów (żeby nie ładować ogromnych plików do pamięci). */
+private fun readAtMost(input: java.io.InputStream, limit: Int): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(8192)
+    while (out.size() < limit) {
+        val read = input.read(buffer, 0, minOf(buffer.size, limit - out.size()))
+        if (read < 0) break
+        out.write(buffer, 0, read)
+    }
+    return out.toByteArray()
+}
+
+private fun formatBackupTime(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
 
 @Composable
 private fun ThemeOptionRow(
@@ -553,11 +724,6 @@ private fun shareContent(context: Context, content: String, mimeType: String, fi
 
         context.startActivity(Intent.createChooser(intent, "Udostępnij lub zapisz plik"))
     } catch (e: Exception) {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, content)
-            putExtra(Intent.EXTRA_SUBJECT, "Eksport RailLog")
-        }
-        context.startActivity(Intent.createChooser(intent, "Udostępnij dane"))
+        Toast.makeText(context, "Nie udało się udostępnić pliku: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
 }

@@ -4,7 +4,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
+
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+fun secret(gradleName: String, envName: String): String? =
+    providers.gradleProperty(gradleName).orNull?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable(envName).orNull?.takeIf { it.isNotEmpty() }
 
 android {
     namespace = "pl.raillog.app"
@@ -14,8 +23,12 @@ android {
         applicationId = "pl.raillog.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "2.2.1"
+        versionCode = 9
+        versionName = "2.3.0"
+
+        // Klucz API PLK: tylko z właściwości Gradle lub zmiennej środowiskowej, nigdy z repo
+        val plkApiKey = secret("RAILLOG_PLK_API_KEY", "PLK_API_KEY") ?: ""
+        buildConfigField("String", "PLK_API_KEY", "\"$plkApiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,10 +38,6 @@ android {
 
     signingConfigs {
         create("release") {
-            fun secret(gradleName: String, envName: String): String? =
-                providers.gradleProperty(gradleName).orNull?.takeIf { it.isNotEmpty() }
-                    ?: providers.environmentVariable(envName).orNull?.takeIf { it.isNotEmpty() }
-
             val keystoreFile = rootProject.file("raillog-release.jks")
             val storePass = secret("RAILLOG_STORE_PASSWORD", "RELEASE_KEYSTORE_PASSWORD")
             val keyPass = secret("RAILLOG_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
@@ -45,6 +54,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             val releaseSigning = signingConfigs.getByName("release")
@@ -67,6 +80,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
     packaging {
         resources {
@@ -99,6 +117,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

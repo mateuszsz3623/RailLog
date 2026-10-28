@@ -60,5 +60,8 @@ data class DutyEntity(
     val additionalNotes: String? = null,
     
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+
+    // Numer służby wpisany ręcznie (np. "135"); wyświetlany przez Duty.displayDutyCode
+    val dutyCode: String? = null
 )

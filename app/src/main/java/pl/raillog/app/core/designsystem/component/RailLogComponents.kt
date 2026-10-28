@@ -3,6 +3,11 @@ package pl.raillog.app.core.designsystem.component
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,8 +172,10 @@ fun QuickChip(
         border = BorderStroke(1.dp, borderColor),
         shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .height(36.dp)
-            .clickable {
+            .semantics { selected = isSelected }
+            .clickable(role = Role.Button) {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 onClick()
             }

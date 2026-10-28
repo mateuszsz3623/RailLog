@@ -26,6 +26,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +58,7 @@ import pl.raillog.app.core.designsystem.component.RailLogHeroButton
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
+import pl.raillog.app.domain.model.PlannedDuty
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,8 +67,11 @@ import java.util.Locale
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToNewDuty: (String?) -> Unit,
-    onNavigateToDutyDetail: (Long) -> Unit
+    onNavigateToDutyDetail: (Long) -> Unit,
+    onSaveFromPlan: (Long) -> Unit,
+    onCheckTrain: ((String) -> Unit)?
 ) {
+    val nextPlanned by viewModel.nextPlanned.collectAsState()
     val latestDuty by viewModel.latestDuty.collectAsState()
     val statistics by viewModel.statistics.collectAsState()
     val recentVehicles by viewModel.recentVehicles.collectAsState()
@@ -72,6 +86,14 @@ fun DashboardScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Sprawdź pociąg (tylko gdy w buildzie jest klucz API PLK)
+        if (onCheckTrain != null) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                CheckTrainRow(onCheckTrain = onCheckTrain)
+            }
+        }
+
         // Kafel „DZIŚ" — identyfikacja + status dnia
         item {
             Spacer(modifier = Modifier.height(4.dp))
@@ -79,6 +101,13 @@ fun DashboardScreen(
                 formattedToday = formattedToday,
                 hasDutyToday = latestDuty?.date == today
             )
+        }
+
+        // Najbliższa służba z planu (tylko gdy zaimportowano plan)
+        nextPlanned?.let { planned ->
+            item {
+                PlannedDutyCard(planned = planned, onSaveFromPlan = { onSaveFromPlan(planned.id) })
+            }
         }
 
         // Bento KPI — asymetryczny wiersz liczb kokpitowych
@@ -340,7 +369,7 @@ private fun LatestDutyCard(
                 // Lewa kolumna — treść służby
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = formattedDate,
+                        text = listOfNotNull(formattedDate, duty.displayDutyCode).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -466,6 +495,61 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
                 onClick = onStartClick,
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
+        }
+    }
+}
+
+@Composable
+private fun PlannedDutyCard(
+    planned: PlannedDuty,
+    onSaveFromPlan: () -> Unit
+) {
+    val today = LocalDate.now()
+    val dayLabel = when (planned.date) {
+        today -> "Dzisiaj"
+        today.plusDays(1) -> "Jutro"
+        else -> planned.date.format(DateTimeFormatter.ofPattern("EEEE dd.MM", Locale("pl")))
+            .replaceFirstChar { it.uppercase() }
+    }
+    Column {
+        FormSectionHeader(title = "NAJBLIŻSZA SŁUŻBA Z PLANU")
+        TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "$dayLabel · ${planned.displayName} · ${planned.timeRange()} (${planned.displayDuration})",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                RailLogHeroButton(
+                    text = "ZAPISZ Z PLANU",
+                    onClick = onSaveFromPlan
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckTrainRow(onCheckTrain: (String) -> Unit) {
+    var number by rememberSaveable { mutableStateOf("") }
+    val digits = number.filter { it.isDigit() }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = number,
+            onValueChange = { number = it.filter { c -> c.isDigit() }.take(6) },
+            label = { Text("Sprawdź pociąg (nr)") },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { if (digits.isNotEmpty()) onCheckTrain(digits) })
+        )
+        IconButton(onClick = { onCheckTrain(digits) }, enabled = digits.isNotEmpty()) {
+            Icon(imageVector = Icons.Default.Search, contentDescription = "Sprawdź pociąg")
         }
     }
 }

@@ -1,7 +1,9 @@
 package pl.raillog.app.data.repository
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import pl.raillog.app.core.database.dao.DutyDao
@@ -19,9 +21,12 @@ import pl.raillog.app.domain.model.SeriesStatItem
 import pl.raillog.app.domain.model.StationKnowledge
 import pl.raillog.app.domain.model.StatisticsData
 import pl.raillog.app.domain.model.VehicleKnowledge
+import pl.raillog.app.domain.model.matchesQuery
 import pl.raillog.app.domain.model.toDomain
 import pl.raillog.app.domain.model.toEntity
+import pl.raillog.app.domain.repository.AutoBackupInfo
 import pl.raillog.app.domain.repository.DutyRepository
+import pl.raillog.app.domain.repository.RestoreOutcome
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -38,32 +43,26 @@ class DutyRepositoryImpl(
     }
 
     override fun getFilteredDuties(filter: DutyFilter): Flow<List<Duty>> {
-        val baseFlow = if (filter.query.isBlank()) {
-            dutyDao.getAllDuties()
-        } else {
-            dutyDao.searchDuties(filter.query.trim())
-        }
-
-        return baseFlow.map { list ->
+        return dutyDao.getAllDuties().map { list ->
             val now = LocalDate.now()
-            list.filter { entity ->
+            list.map { it.toDomain() }.filter { duty ->
                 // Apply filterType
                 val matchesType = when (filter.filterType) {
                     DutyFilterType.ALL -> true
-                    DutyFilterType.OVERTIME_ONLY -> entity.overtimeMinutes > 0 || entity.isWholeDutyOvertime
-                    DutyFilterType.THIS_MONTH -> entity.date.year == now.year && entity.date.monthValue == now.monthValue
+                    DutyFilterType.OVERTIME_ONLY -> duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime
+                    DutyFilterType.THIS_MONTH -> duty.date.year == now.year && duty.date.monthValue == now.monthValue
                 }
 
                 // Apply selectedSeries
                 val matchesSeries = if (filter.selectedSeries.isNullOrBlank()) {
                     true
                 } else {
-                    entity.vehicleSeries?.equals(filter.selectedSeries, ignoreCase = true) == true
+                    duty.vehicleSeries?.equals(filter.selectedSeries, ignoreCase = true) == true
                 }
 
-                matchesType && matchesSeries
-            }.map { it.toDomain() }
-        }
+                matchesType && matchesSeries && duty.matchesQuery(filter.query)
+            }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getDutyById(id: Long): Flow<Duty?> {
@@ -104,7 +103,7 @@ class DutyRepositoryImpl(
                 }
             }
             typeCounts.entries.sortedByDescending { it.value }.map { it.key }.take(6)
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getRecentVehicles(): Flow<List<String>> {
@@ -119,7 +118,7 @@ class DutyRepositoryImpl(
                 }
             }
             vehicles.take(8)
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getRecentRoutes(): Flow<List<List<String>>> {
@@ -136,7 +135,7 @@ class DutyRepositoryImpl(
             .filter { it.size >= 2 }
             .distinct()
             .take(4)
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getStatistics(selectedMonth: YearMonth?): Flow<StatisticsData> {
@@ -220,7 +219,7 @@ class DutyRepositoryImpl(
                 topRoutes = topRoutes,
                 monthlyHistory = monthlyHistory
             )
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getStationKnowledge(query: String): Flow<List<StationKnowledge>> {
@@ -257,7 +256,7 @@ class DutyRepositoryImpl(
             }
             .filter { if (q.isBlank()) true else it.stationName.contains(q, ignoreCase = true) }
             .sortedBy { it.daysAgo }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getVehicleKnowledge(query: String): Flow<List<VehicleKnowledge>> {
@@ -291,7 +290,7 @@ class DutyRepositoryImpl(
             }
             .filter { if (q.isBlank()) true else it.vehicleType.contains(q, ignoreCase = true) }
             .sortedBy { it.daysAgo }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override suspend fun exportCsv(): String {
@@ -304,47 +303,62 @@ class DutyRepositoryImpl(
         return BackupManager.createBackupJson(duties)
     }
 
-    override suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<Int> {
+    override suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<RestoreOutcome> {
         return try {
             val payload = BackupManager.parseBackupJson(jsonString).getOrElse { return Result.failure(it) }
             if (overwrite) {
-                val current = dutyDao.getAllDutiesSnapshot()
-                if (current.isNotEmpty()) {
-                    // Bez udanej kopii awaryjnej nie ruszamy danych.
-                    withContext(Dispatchers.IO) {
-                        autoBackupStore.save(BackupManager.createBackupJson(current))
-                    }
-                }
+                val backedUp = saveEmergencyBackupIfNeeded()
                 dutyDao.replaceAllDuties(payload.duties)
-                Result.success(payload.duties.size)
+                Result.success(RestoreOutcome(payload.duties.size, backedUp))
             } else {
-                // Reset ID do 0 przy scalaniu, aby uniknąć kolizji
-                val cleanedList = payload.duties.map { it.copy(id = 0) }
+                // Reset ID do 0 przy scalaniu, aby uniknąć kolizji; identyczne służby pomijamy
+                val seen = dutyDao.getAllDutiesSnapshot().map { it.dedupKey() }.toMutableSet()
+                val cleanedList = payload.duties.map { it.copy(id = 0) }.filter { seen.add(it.dedupKey()) }
                 dutyDao.insertAll(cleanedList)
-                Result.success(cleanedList.size)
+                Result.success(RestoreOutcome(cleanedList.size, false, payload.duties.size - cleanedList.size))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun restoreLatestAutoBackup(): Result<Int> {
+    /** Zapisuje bieżący stan jako kopię awaryjną (gdy baza nie jest pusta). Błąd zapisu = wyjątek, dane nietknięte. */
+    private suspend fun saveEmergencyBackupIfNeeded(): Boolean {
+        val current = dutyDao.getAllDutiesSnapshot()
+        if (current.isEmpty()) return false
+        withContext(Dispatchers.IO) {
+            autoBackupStore.save(BackupManager.createBackupJson(current))
+        }
+        return true
+    }
+
+    override suspend fun restoreLatestAutoBackup(): Result<RestoreOutcome> {
         return try {
             val file = withContext(Dispatchers.IO) { autoBackupStore.latest() }
                 ?: return Result.failure(Exception("Brak kopii awaryjnej do przywrócenia"))
+            // Treść w pamięci przed nową kopią: rotacja mogłaby usunąć plik źródłowy.
             val json = withContext(Dispatchers.IO) { file.readText(Charsets.UTF_8) }
             val payload = BackupManager.parseBackupJson(json).getOrElse { return Result.failure(it) }
-            // Celowo bez nowej kopii awaryjnej: cofnięcie ma być jednorazowe,
-            // a kolejna kopia wypchnęłaby z rotacji starsze, jeszcze potrzebne pliki.
+            val backedUp = saveEmergencyBackupIfNeeded()
             dutyDao.replaceAllDuties(payload.duties)
-            withContext(Dispatchers.IO) { autoBackupStore.delete(file) }
-            Result.success(payload.duties.size)
+            withContext(Dispatchers.IO) { if (file.exists()) autoBackupStore.delete(file) }
+            Result.success(RestoreOutcome(payload.duties.size, backedUp))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun latestAutoBackupTimestamp(): Long? = withContext(Dispatchers.IO) {
-        autoBackupStore.latest()?.let { autoBackupStore.timestampOf(it) }
+    override suspend fun latestAutoBackupInfo(): AutoBackupInfo? = withContext(Dispatchers.IO) {
+        val file = autoBackupStore.latest() ?: return@withContext null
+        val count = BackupManager.parseBackupJson(file.readText(Charsets.UTF_8)).getOrNull()?.dutiesCount ?: 0
+        AutoBackupInfo(autoBackupStore.timestampOf(file), count)
     }
 }
+
+/** Klucz służby do wykrywania duplikatów przy scalaniu: data, godziny, odcinki, uwagi. */
+private fun DutyEntity.dedupKey(): List<Any?> =
+    listOf(date, startTime, endTime, legs, notes, additionalNotes)

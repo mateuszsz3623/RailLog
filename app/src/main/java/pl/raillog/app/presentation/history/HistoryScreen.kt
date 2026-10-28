@@ -331,7 +331,7 @@ fun HistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(vehicleKnowledge, key = { it.vehiclePlate }) { item ->
+                            items(vehicleKnowledge, key = { it.vehicleType }) { item ->
                                 VehicleKnowledgeCard(
                                     item = item,
                                     onDutyClick = onNavigateToDutyDetail
@@ -457,7 +457,7 @@ private fun StationKnowledgeCard(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${duty.date} • ${duty.displayRoute}",
+                                        text = "${duty.date} • ${duty.displayDutyCode?.let { "$it • " }.orEmpty()}${duty.displayRoute}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -588,7 +588,7 @@ private fun VehicleKnowledgeCard(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${duty.date} • ${duty.displayRoute}",
+                                        text = "${duty.date} • ${duty.displayDutyCode?.let { "$it • " }.orEmpty()}${duty.displayRoute}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -695,12 +695,20 @@ private fun HistoryDutyItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = duty.displayRoute,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        duty.displayDutyCode?.let { code ->
+                            Text(
+                                text = code,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = duty.displayRoute,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
                     if (duty.overtimeMinutes > 0 || duty.isWholeDutyOvertime) {
                         StatusBadge(
