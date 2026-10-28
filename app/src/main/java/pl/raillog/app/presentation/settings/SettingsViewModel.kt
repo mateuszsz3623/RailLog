@@ -4,15 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import pl.raillog.app.core.util.IcsParser
 import pl.raillog.app.domain.repository.AutoBackupInfo
 import pl.raillog.app.domain.repository.DutyRepository
+import pl.raillog.app.domain.repository.PlanRepository
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 sealed class SettingsEvent {
     data class ShareContent(val content: String, val mimeType: String, val filename: String) : SettingsEvent()
@@ -20,8 +29,11 @@ sealed class SettingsEvent {
     data class ShowMessage(val message: String) : SettingsEvent()
 }
 
+data class PlanInfo(val count: Int, val from: LocalDate, val to: LocalDate)
+
 class SettingsViewModel(
-    private val repository: DutyRepository
+    private val repository: DutyRepository,
+    private val planRepository: PlanRepository
 ) : ViewModel() {
 
     private val _events = MutableSharedFlow<SettingsEvent>()
@@ -33,8 +45,51 @@ class SettingsViewModel(
     private val _autoBackupInfo = MutableStateFlow<AutoBackupInfo?>(null)
     val autoBackupInfo: StateFlow<AutoBackupInfo?> = _autoBackupInfo.asStateFlow()
 
+    val planInfo: StateFlow<PlanInfo?> = planRepository.getPlannedDuties()
+        .map { list ->
+            if (list.isEmpty()) null else PlanInfo(list.size, list.minOf { it.date }, list.maxOf { it.date })
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         refreshAutoBackup()
+    }
+
+    fun importPlan(icsText: String) {
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val events = withContext(Dispatchers.Default) { IcsParser.parse(icsText) }
+                val summary = planRepository.importPlan(events)
+                val message = if (summary == null) {
+                    "W pliku nie znaleziono służb z godzinami"
+                } else {
+                    val dayMonth = DateTimeFormatter.ofPattern("dd.MM")
+                    val full = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                    "Wczytano ${summary.count} służb (${summary.from.format(dayMonth)}–${summary.to.format(full)})"
+                }
+                _events.emit(SettingsEvent.ShowMessage(message))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(SettingsEvent.ShowMessage("Błąd wczytywania planu: ${e.localizedMessage}"))
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    fun clearPlan() {
+        viewModelScope.launch {
+            try {
+                planRepository.clearPlan()
+                _events.emit(SettingsEvent.ShowMessage("Plan służb wyczyszczony"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(SettingsEvent.ShowMessage("Błąd czyszczenia planu: ${e.localizedMessage}"))
+            }
+        }
     }
 
     private fun refreshAutoBackup() {
@@ -164,10 +219,13 @@ class SettingsViewModel(
         }
     }
 
-    class Factory(private val repository: DutyRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: DutyRepository,
+        private val planRepository: PlanRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return SettingsViewModel(repository) as T
+            return SettingsViewModel(repository, planRepository) as T
         }
     }
 }

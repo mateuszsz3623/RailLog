@@ -195,6 +195,14 @@ fun DutyDetailScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                d.displayDutyCode?.let { code ->
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = code,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                                 if (!timeRange.isNullOrBlank()) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {

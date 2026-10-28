@@ -54,6 +54,7 @@ import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pl.raillog.app.core.designsystem.AppThemeMode
 import pl.raillog.app.domain.repository.DutyRepository
+import pl.raillog.app.domain.repository.PlanRepository
 import pl.raillog.app.presentation.calendar.CalendarScreen
 import pl.raillog.app.presentation.calendar.CalendarViewModel
 import pl.raillog.app.presentation.dashboard.DashboardScreen
@@ -82,6 +83,7 @@ sealed class BottomNavItem(val screen: Screen, val title: String, val icon: Imag
 @Composable
 fun RailLogNavHost(
     repository: DutyRepository,
+    planRepository: PlanRepository,
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit
 ) {
@@ -162,7 +164,7 @@ fun RailLogNavHost(
         ) {
             // Dashboard
             composable(Screen.Dashboard.route) {
-                val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory(repository))
+                val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory(repository, planRepository))
                 DashboardScreen(
                     viewModel = vm,
                     onNavigateToNewDuty = { prefilledVehicle ->
@@ -176,6 +178,9 @@ fun RailLogNavHost(
                     },
                     onNavigateToDutyDetail = { dutyId ->
                         navController.navigate(Screen.DutyDetail.createRoute(dutyId))
+                    },
+                    onSaveFromPlan = { plannedId ->
+                        navController.navigate("duty_form?dutyId=0&plannedId=$plannedId")
                     }
                 )
             }
@@ -196,13 +201,13 @@ fun RailLogNavHost(
 
             // Statistics
             composable(Screen.Statistics.route) {
-                val vm: StatisticsViewModel = viewModel(factory = StatisticsViewModel.Factory(repository))
+                val vm: StatisticsViewModel = viewModel(factory = StatisticsViewModel.Factory(repository, planRepository))
                 StatisticsScreen(viewModel = vm)
             }
 
             // Settings
             composable(Screen.Settings.route) {
-                val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(repository))
+                val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(repository, planRepository))
                 SettingsScreen(
                     viewModel = vm,
                     themeMode = themeMode,
@@ -212,19 +217,22 @@ fun RailLogNavHost(
 
             // Calendar
             composable(Screen.Calendar.route) {
-                val vm: CalendarViewModel = viewModel(factory = CalendarViewModel.Factory(repository))
+                val vm: CalendarViewModel = viewModel(factory = CalendarViewModel.Factory(repository, planRepository))
                 CalendarScreen(
                     viewModel = vm,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDutyDetail = { dutyId ->
                         navController.navigate(Screen.DutyDetail.createRoute(dutyId))
+                    },
+                    onSaveFromPlan = { plannedId ->
+                        navController.navigate("duty_form?dutyId=0&plannedId=$plannedId")
                     }
                 )
             }
 
             // Duty Form (New & Edit)
             composable(
-                route = "duty_form?dutyId={dutyId}&prefilledVehicle={prefilledVehicle}",
+                route = "duty_form?dutyId={dutyId}&prefilledVehicle={prefilledVehicle}&plannedId={plannedId}",
                 arguments = listOf(
                     navArgument("dutyId") {
                         type = NavType.LongType
@@ -234,17 +242,22 @@ fun RailLogNavHost(
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
+                    },
+                    navArgument("plannedId") {
+                        type = NavType.LongType
+                        defaultValue = 0L
                     }
                 )
             ) { backStackEntry ->
                 val dutyId = backStackEntry.arguments?.getLong("dutyId") ?: 0L
+                val plannedId = backStackEntry.arguments?.getLong("plannedId") ?: 0L
                 val rawPrefilled = backStackEntry.arguments?.getString("prefilledVehicle")
                 val prefilled = if (rawPrefilled != null) {
                     URLDecoder.decode(rawPrefilled, StandardCharsets.UTF_8.toString())
                 } else null
 
                 val vm: DutyFormViewModel = viewModel(
-                    factory = DutyFormViewModel.factory(repository, dutyId, prefilled)
+                    factory = DutyFormViewModel.factory(repository, planRepository, dutyId, prefilled, plannedId)
                 )
 
                 DutyFormScreen(

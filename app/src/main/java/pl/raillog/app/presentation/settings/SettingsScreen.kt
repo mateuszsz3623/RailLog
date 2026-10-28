@@ -85,9 +85,12 @@ fun SettingsScreen(
     val isProcessing by viewModel.isProcessing.collectAsState()
 
     val autoBackupInfo by viewModel.autoBackupInfo.collectAsState()
+    val planInfo by viewModel.planInfo.collectAsState()
 
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
     var showUndoDialog by remember { mutableStateOf(false) }
+    var showClearPlanDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
 
     // File Picker for restoring backup
@@ -108,9 +111,40 @@ fun SettingsScreen(
         }
     }
 
+    // Import planu służb z pliku .ics (limit 2 MB, odczyt poza głównym wątkiem)
+    val planFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                val result = withContext(Dispatchers.IO) {
+                    try {
+                        val bytes = context.contentResolver.openInputStream(uri)?.use { readAtMost(it, MAX_PLAN_BYTES + 1) }
+                        when {
+                            bytes == null -> Result.failure(java.io.IOException("Nie można otworzyć pliku"))
+                            bytes.size > MAX_PLAN_BYTES -> Result.failure(java.io.IOException("Plik jest większy niż 2 MB"))
+                            else -> Result.success(String(bytes, Charsets.UTF_8))
+                        }
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                }
+                val text = result.getOrNull()
+                when {
+                    text == null -> Toast.makeText(
+                        context, "Błąd odczytu pliku: ${result.exceptionOrNull()?.localizedMessage}", Toast.LENGTH_LONG
+                    ).show()
+                    !text.contains("BEGIN:VCALENDAR", ignoreCase = true) -> Toast.makeText(
+                        context, "To nie jest plik kalendarza (.ics)", Toast.LENGTH_LONG
+                    ).show()
+                    else -> viewModel.importPlan(text)
+                }
+            }
+        }
+    }
+
     // Zapis kopii JSON do pliku wskazanego przez użytkownika
     var pendingFileContent by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
@@ -367,6 +401,45 @@ fun SettingsScreen(
                 }
             }
 
+            // Section: PLAN SŁUŻB (opcjonalnie)
+            item {
+                FormSectionHeader(title = "PLAN SŁUŻB (OPCJONALNIE)")
+                TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Jeśli pracodawca udostępnia plan w pliku .ics, wczytaj go. Bez pliku aplikacja działa normalnie.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { planFilePickerLauncher.launch(arrayOf("*/*")) },
+                            enabled = !isProcessing,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("IMPORTUJ PLAN (.ics)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        planInfo?.let { info ->
+                            val fmt = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Wczytany plan: ${info.from.format(fmt)} – ${info.to.format(fmt)} · ${info.count} służb",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            TextButton(onClick = { showClearPlanDialog = true }) {
+                                Text("WYCZYŚĆ PLAN", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Section 4: PRIVACY & ABOUT
             item {
                 FormSectionHeader(title = "O APLIKACJI I PRYWATNOŚĆ")
@@ -448,6 +521,30 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    if (showClearPlanDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearPlanDialog = false },
+            title = { Text(text = "Wyczyścić plan służb?", fontWeight = FontWeight.Bold) },
+            text = { Text("Usuniemy tylko wczytany plan. Zapisane służby zostają bez zmian.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearPlanDialog = false
+                        viewModel.clearPlan()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("WYCZYŚĆ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearPlanDialog = false }) {
+                    Text("ANULUJ")
+                }
+            }
+        )
     }
 
     if (showUndoDialog) {
@@ -534,6 +631,20 @@ fun SettingsScreen(
             }
         )
     }
+}
+
+private const val MAX_PLAN_BYTES = 2 * 1024 * 1024
+
+/** Czyta strumień, ale nie więcej niż [limit] bajtów (żeby nie ładować ogromnych plików do pamięci). */
+private fun readAtMost(input: java.io.InputStream, limit: Int): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(8192)
+    while (out.size() < limit) {
+        val read = input.read(buffer, 0, minOf(buffer.size, limit - out.size()))
+        if (read < 0) break
+        out.write(buffer, 0, read)
+    }
+    return out.toByteArray()
 }
 
 private fun formatBackupTime(millis: Long): String =

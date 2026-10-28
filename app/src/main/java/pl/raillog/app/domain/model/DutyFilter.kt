@@ -28,6 +28,7 @@ fun Duty.matchesQuery(query: String): Boolean {
         add(VehicleStringParser.format(vehicleSeries, vehicleNumber))
         add(vehicleSeries.orEmpty())
         add(notes.orEmpty())
+        add(dutyCode.orEmpty())
         add(additionalNotes.orEmpty())
     }
     return fields.any { it.contains(q, ignoreCase = true) }

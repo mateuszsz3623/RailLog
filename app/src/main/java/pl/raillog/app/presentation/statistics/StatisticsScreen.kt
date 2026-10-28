@@ -47,6 +47,7 @@ import pl.raillog.app.core.designsystem.PantographAmberDark
 import pl.raillog.app.core.designsystem.component.BentoCard
 import pl.raillog.app.core.designsystem.component.CockpitNumber
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.util.DutyTimeCalculator
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.SeriesStatItem
 import java.time.YearMonth
@@ -59,6 +60,7 @@ fun StatisticsScreen(
     viewModel: StatisticsViewModel
 ) {
     val stats by viewModel.statistics.collectAsState()
+    val planStats by viewModel.planStats.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
 
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -205,6 +207,35 @@ fun StatisticsScreen(
                             },
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+            }
+
+            // Section: plan służb (tylko gdy zaimportowano plan na ten miesiąc)
+            planStats?.let { plan ->
+                item {
+                    FormSectionHeader(title = "PLAN SŁUŻB")
+                    TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Plan: ${DutyTimeCalculator.formatDuration(plan.plannedMinutes)}",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Wymiar (Kodeks pracy): ${plan.normHours} h",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Zapisane: ${DutyTimeCalculator.formatDuration(plan.savedMinutes)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

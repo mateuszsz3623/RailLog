@@ -4,9 +4,11 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -84,7 +86,8 @@ class MigrationTest {
             .addMigrations(
                 RailLogDatabase.MIGRATION_1_2,
                 RailLogDatabase.MIGRATION_2_3,
-                RailLogDatabase.MIGRATION_4_3
+                RailLogDatabase.MIGRATION_3_5,
+                RailLogDatabase.MIGRATION_4_5
             )
             .allowMainThreadQueries()
             .build()
@@ -92,6 +95,9 @@ class MigrationTest {
     private fun assertDutiesKept(db: RailLogDatabase) = runBlocking {
         val duties = db.dutyDao().getAllDutiesSnapshot()
         assertEquals(2, duties.size)
+        assertNull(duties[0].dutyCode)
+        assertNull(duties[1].dutyCode)
+        assertEquals(0, db.plannedDutyDao().getAll().first().size)
         assertEquals(LocalDate.of(2026, 1, 10), duties[0].date)
         assertEquals("EU07", duties[0].vehicleSeries)
         assertEquals("pierwsza", duties[0].notes)
@@ -105,7 +111,7 @@ class MigrationTest {
     }
 
     @Test
-    fun migration4to3KeepsDataWhenTableHasExtraColumn() {
+    fun migration4to5KeepsDataWhenTableHasExtraColumn() {
         createVersion4Database(extraColumn = true)
         val db = openRoom()
         try {
@@ -116,8 +122,27 @@ class MigrationTest {
     }
 
     @Test
-    fun migration4to3KeepsDataWhenOnlyVersionAndForeignTableDiffer() {
+    fun migration4to5KeepsDataWhenOnlyVersionAndForeignTableDiffer() {
         createVersion4Database(extraColumn = false)
+        val db = openRoom()
+        try {
+            assertDutiesKept(db)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun migration3to5KeepsDataAndAddsDutyCodeAndPlan() {
+        val raw = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+        try {
+            createDutiesTable(raw, extraColumn = false)
+            insertDuty(raw, "2026-01-10", "EU07", "pierwsza")
+            insertDuty(raw, "2026-02-11", "ET22", "druga")
+            raw.execSQL("PRAGMA user_version = 3")
+        } finally {
+            raw.close()
+        }
         val db = openRoom()
         try {
             assertDutiesKept(db)

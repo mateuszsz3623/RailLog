@@ -8,7 +8,7 @@ import pl.raillog.app.core.database.entity.DutyEntity
 @Serializable
 data class BackupPayload(
     val appName: String = "RailLog",
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int = 3,
     val exportTimestamp: Long = System.currentTimeMillis(),
     val dutiesCount: Int,
     val duties: List<DutyEntity>
@@ -27,7 +27,7 @@ object BackupManager {
      */
     fun createBackupJson(duties: List<DutyEntity>): String {
         val payload = BackupPayload(
-            schemaVersion = 2,
+            schemaVersion = 3,
             dutiesCount = duties.size,
             duties = duties
         )

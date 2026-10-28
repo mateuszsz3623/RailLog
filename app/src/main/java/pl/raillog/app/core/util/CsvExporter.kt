@@ -17,10 +17,11 @@ object CsvExporter {
         sb.append("\uFEFF")
 
         // CSV Header
-        sb.append("Data;Rozpoczęcie;Zakończenie;Czas służby;Pojazd;Przebieg trasy;Pociągi;Szczegóły odcinków;Nadgodziny (min);Nadgodziny sformatowane;Cała służba nadgodziny;Uwagi;Dodatkowe notatki\n")
+        sb.append("Data;Numer służby;Rozpoczęcie;Zakończenie;Czas służby;Pojazd;Przebieg trasy;Pociągi;Szczegóły odcinków;Nadgodziny (min);Nadgodziny sformatowane;Cała służba nadgodziny;Uwagi;Dodatkowe notatki\n")
 
         for (duty in duties) {
             val dateStr = duty.date.toString()
+            val dutyCode = escapeCsv(duty.dutyCode.orEmpty())
             val start = escapeCsv(duty.startTime ?: "")
             val end = escapeCsv(duty.endTime ?: "")
             val duration = escapeCsv(duty.displayDuration ?: "")
@@ -42,7 +43,7 @@ object CsvExporter {
             val notes = escapeCsv(duty.notes ?: "")
             val additionalNotes = escapeCsv(duty.additionalNotes ?: "")
 
-            sb.append("$dateStr;$start;$end;$duration;$vehicle;$route;$trains;$legsDetail;$overtimeMin;$overtimeFmt;$wholeDuty;$notes;$additionalNotes\n")
+            sb.append("$dateStr;$dutyCode;$start;$end;$duration;$vehicle;$route;$trains;$legsDetail;$overtimeMin;$overtimeFmt;$wholeDuty;$notes;$additionalNotes\n")
         }
 
         return sb.toString()

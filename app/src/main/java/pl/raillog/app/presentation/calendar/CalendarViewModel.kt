@@ -9,15 +9,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import pl.raillog.app.domain.model.Duty
+import pl.raillog.app.domain.model.PlannedDuty
 import pl.raillog.app.domain.repository.DutyRepository
+import pl.raillog.app.domain.repository.PlanRepository
 import java.time.LocalDate
 import java.time.YearMonth
 
 class CalendarViewModel(
-    repository: DutyRepository
+    repository: DutyRepository,
+    planRepository: PlanRepository
 ) : ViewModel() {
 
     val duties: StateFlow<List<Duty>> = repository.getAllDuties()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val planned: StateFlow<List<PlannedDuty>> = planRepository.getPlannedDuties()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _yearMonth = MutableStateFlow(YearMonth.now())
@@ -38,10 +44,13 @@ class CalendarViewModel(
         _selectedDate.value = date
     }
 
-    class Factory(private val repository: DutyRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: DutyRepository,
+        private val planRepository: PlanRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return CalendarViewModel(repository) as T
+            return CalendarViewModel(repository, planRepository) as T
         }
     }
 }

@@ -19,8 +19,16 @@ data class Duty(
     val notes: String? = null,
     val additionalNotes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val dutyCode: String? = null
 ) {
+    /** Etykieta „Służba 135” dla kodu zaczynającego się cyfrą, inaczej kod bez zmian; null gdy brak. */
+    val displayDutyCode: String?
+        get() {
+            val code = dutyCode?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+            return if (code.first().isDigit()) "Służba $code" else code
+        }
+
     /**
      * Unique vehicle types for this duty, deduplicated and normalized (e.g. ["ED160", "ET42"]).
      * Always ignores vehicle instance numbers.
@@ -164,7 +172,8 @@ fun DutyEntity.toDomain(): Duty {
         notes = notes,
         additionalNotes = additionalNotes,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        dutyCode = dutyCode
     )
 }
 
@@ -212,6 +221,7 @@ fun Duty.toEntity(): DutyEntity {
         notes = notes,
         additionalNotes = additionalNotes,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        dutyCode = dutyCode?.trim()?.ifEmpty { null }
     )
 }

@@ -243,6 +243,20 @@ fun DutyFormScreen(
                 }
             }
 
+            // Numer służby (opcjonalnie)
+            item {
+                OutlinedTextField(
+                    value = state.dutyCode,
+                    onValueChange = viewModel::onDutyCodeChanged,
+                    label = { Text("NUMER SŁUŻBY (OPCJONALNIE)") },
+                    placeholder = { Text("np. 135") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+                    colors = customTextFieldColors()
+                )
+            }
+
             // Section 2: MULTI-SEGMENT ROUTE WITH LEGS (ODCINKI TRASY & POJAZDY NA ODCINKACH)
             item {
                 Row(
@@ -340,6 +354,15 @@ fun DutyFormScreen(
                         supportingText = if (endError) ({ Text("Wpisz godzinę, np. 06:15") }) else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         colors = customTextFieldColors()
+                    )
+                }
+
+                state.plannedHint?.let { hint ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 

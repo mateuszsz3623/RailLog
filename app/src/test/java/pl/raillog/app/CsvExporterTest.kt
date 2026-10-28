@@ -52,4 +52,14 @@ class CsvExporterTest {
         assertTrue(csv.contains("14:20"))
         assertTrue(csv.contains("8 h 20 min"))
     }
+
+    @Test
+    fun dutyCodeColumnComesRightAfterDate() {
+        val duty = Duty(date = java.time.LocalDate.of(2026, 3, 3), dutyCode = "135")
+
+        val lines = CsvExporter.exportToCsv(listOf(duty)).trimEnd().lines()
+
+        assertTrue(lines[0].trimStart(Char(0xFEFF)).startsWith("Data;Numer służby;Rozpoczęcie"))
+        assertTrue(lines[1].startsWith("2026-03-03;135;"))
+    }
 }

@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pl.raillog.app.core.designsystem.PantographAmber
 import pl.raillog.app.core.designsystem.component.FormSectionHeader
+import pl.raillog.app.core.designsystem.component.RailLogSecondaryButton
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
@@ -53,9 +55,11 @@ import java.util.Locale
 fun CalendarScreen(
     viewModel: CalendarViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToDutyDetail: (Long) -> Unit
+    onNavigateToDutyDetail: (Long) -> Unit,
+    onSaveFromPlan: (Long) -> Unit
 ) {
     val allDuties by viewModel.duties.collectAsState()
+    val planned by viewModel.planned.collectAsState()
     val currentYearMonth by viewModel.yearMonth.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
 
@@ -63,6 +67,11 @@ fun CalendarScreen(
     val displayMonth = currentYearMonth.format(monthFormatter).replaceFirstChar { it.uppercase() }
 
     val dutiesOnSelectedDate = allDuties.filter { it.date == selectedDate }
+    val plannedOnSelectedDate = if (dutiesOnSelectedDate.isEmpty()) planned.filter { it.date == selectedDate } else emptyList()
+    val plannedOnlyDates = remember(planned, allDuties) {
+        val saved = allDuties.map { it.date }.toSet()
+        planned.map { it.date }.filter { it !in saved }.toSet()
+    }
 
     Scaffold(
         topBar = {
@@ -133,6 +142,7 @@ fun CalendarScreen(
                 yearMonth = currentYearMonth,
                 selectedDate = selectedDate,
                 duties = allDuties,
+                plannedOnlyDates = plannedOnlyDates,
                 onDateSelected = viewModel::selectDate
             )
 
@@ -144,7 +154,28 @@ fun CalendarScreen(
 
             FormSectionHeader(title = formattedSelected.uppercase())
 
-            if (dutiesOnSelectedDate.isEmpty()) {
+            if (plannedOnSelectedDate.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    plannedOnSelectedDate.forEach { item ->
+                        TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text(
+                                    text = "Z planu: ${item.displayName} · ${item.timeRange()} (${item.displayDuration})",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                RailLogSecondaryButton(
+                                    text = "ZAPISZ Z PLANU",
+                                    onClick = { onSaveFromPlan(item.id) },
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (dutiesOnSelectedDate.isEmpty()) {
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Box(
                         modifier = Modifier
@@ -177,7 +208,7 @@ fun CalendarScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = duty.displayRoute,
+                                        text = listOfNotNull(duty.displayDutyCode, duty.displayRoute).joinToString(" · "),
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f)
@@ -217,6 +248,7 @@ private fun MonthGrid(
     yearMonth: YearMonth,
     selectedDate: LocalDate,
     duties: List<Duty>,
+    plannedOnlyDates: Set<LocalDate>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val firstDayOfMonth = yearMonth.atDay(1)
@@ -243,12 +275,17 @@ private fun MonthGrid(
                             val isSelected = date == selectedDate
                             val dayDuties = duties.filter { it.date == date }
                             val hasDuty = dayDuties.isNotEmpty()
+                            val hasPlanOnly = date in plannedOnlyDates
                             val hasOvertime = dayDuties.any { it.overtimeMinutes > 0 || it.isWholeDutyOvertime }
 
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
-                                border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+                                border = when {
+                                    isSelected -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                    hasPlanOnly -> BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                                    else -> null
+                                },
                                 modifier = Modifier
                                     .size(38.dp)
                                     .clickable { onDateSelected(date) }
@@ -260,7 +297,7 @@ private fun MonthGrid(
                                     Text(
                                         text = "${date.dayOfMonth}",
                                         style = MaterialTheme.typography.labelLarge.copy(
-                                            fontWeight = if (isSelected || hasDuty) FontWeight.Bold else FontWeight.Normal
+                                            fontWeight = if (isSelected || hasDuty || hasPlanOnly) FontWeight.Bold else FontWeight.Normal
                                         ),
                                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )

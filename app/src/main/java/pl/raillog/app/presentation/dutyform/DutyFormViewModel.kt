@@ -30,6 +30,7 @@ import pl.raillog.app.core.util.VehicleStringParser
 import pl.raillog.app.domain.model.Duty
 import pl.raillog.app.domain.model.DutyLeg
 import pl.raillog.app.domain.repository.DutyRepository
+import pl.raillog.app.domain.repository.PlanRepository
 import java.time.LocalDate
 
 @Serializable
@@ -56,6 +57,9 @@ data class DutyFormState(
     val isWholeDutyOvertime: Boolean = false,
     val notes: String = "",
     val additionalNotes: String = "",
+    val dutyCode: String = "",
+    // Planowy czas służby (gdy formularz otwarty z planu), do podpowiedzi o dłuższej służbie
+    val plannedDurationMinutes: Int = 0,
     @Transient
     val isSaving: Boolean = false
 ) {
@@ -64,6 +68,15 @@ data class DutyFormState(
 
     val displayDuration: String?
         get() = calculatedDurationMinutes?.let { DutyTimeCalculator.formatDuration(it) }
+
+    /** „Planowo 11 h 24 min · dłużej o 25 min” – tylko podpowiedź, nadgodzin nie ustawia. */
+    val plannedHint: String?
+        get() {
+            val actual = calculatedDurationMinutes ?: return null
+            if (plannedDurationMinutes <= 0 || actual <= plannedDurationMinutes) return null
+            return "Planowo ${DutyTimeCalculator.formatDuration(plannedDurationMinutes)} · " +
+                "dłużej o ${DutyTimeCalculator.formatDuration(actual - plannedDurationMinutes)}"
+        }
 
     val totalOvertimeMinutes: Int
         get() {
@@ -78,9 +91,11 @@ data class DutyFormState(
 
 class DutyFormViewModel(
     private val repository: DutyRepository,
+    private val planRepository: PlanRepository,
     private val savedStateHandle: SavedStateHandle,
     private val initialDutyId: Long = 0L,
-    private val prefilledVehicle: String? = null
+    private val prefilledVehicle: String? = null,
+    private val plannedId: Long = 0L
 ) : ViewModel() {
 
     private val draftJson = Json { ignoreUnknownKeys = true }
@@ -123,6 +138,8 @@ class DutyFormViewModel(
     init {
         if (restoredDraft == null && initialDutyId > 0L) {
             loadExistingDuty(initialDutyId)
+        } else if (restoredDraft == null && plannedId > 0L) {
+            prefillFromPlan(plannedId)
         }
         _uiState.onEach { state ->
             if (draftEnabled) {
@@ -153,6 +170,21 @@ class DutyFormViewModel(
             SharingStarted.Eagerly,
             _uiState.value.copy(isSaving = false) != initialState.value.copy(isSaving = false)
         )
+
+    private fun prefillFromPlan(id: Long) {
+        viewModelScope.launch {
+            val planned = planRepository.getPlannedById(id) ?: return@launch
+            val prefilled = _uiState.value.copy(
+                date = planned.date,
+                startTime = planned.startTime(),
+                endTime = planned.endTime(),
+                dutyCode = planned.formDutyCode,
+                plannedDurationMinutes = planned.durationMinutes
+            )
+            _uiState.value = prefilled
+            initialState.value = prefilled
+        }
+    }
 
     private fun loadExistingDuty(id: Long) {
         viewModelScope.launch {
@@ -195,7 +227,8 @@ class DutyFormViewModel(
                     overtimeMinutes = otM,
                     isWholeDutyOvertime = duty.isWholeDutyOvertime,
                     notes = duty.notes ?: "",
-                    additionalNotes = duty.additionalNotes ?: ""
+                    additionalNotes = duty.additionalNotes ?: "",
+                    dutyCode = duty.dutyCode ?: ""
                 )
             _uiState.value = loaded
             initialState.value = loaded
@@ -331,6 +364,10 @@ class DutyFormViewModel(
         _uiState.update { it.copy(overtimeHours = "", overtimeMinutes = "", isWholeDutyOvertime = false) }
     }
 
+    fun onDutyCodeChanged(code: String) {
+        _uiState.update { it.copy(dutyCode = code.uppercase()) }
+    }
+
     fun onNotesChanged(notes: String) {
         _uiState.update { it.copy(notes = notes) }
     }
@@ -390,6 +427,7 @@ class DutyFormViewModel(
                     isWholeDutyOvertime = current.isWholeDutyOvertime,
                     notes = current.notes.ifBlank { null },
                     additionalNotes = current.additionalNotes.ifBlank { null },
+                    dutyCode = current.dutyCode.trim().ifBlank { null },
                     createdAt = if (current.dutyId > 0L && current.createdAt > 0L) current.createdAt else now,
                     updatedAt = now
                 )
@@ -416,11 +454,13 @@ class DutyFormViewModel(
 
         fun factory(
             repository: DutyRepository,
+            planRepository: PlanRepository,
             dutyId: Long = 0L,
-            prefilledVehicle: String? = null
+            prefilledVehicle: String? = null,
+            plannedId: Long = 0L
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                DutyFormViewModel(repository, createSavedStateHandle(), dutyId, prefilledVehicle)
+                DutyFormViewModel(repository, planRepository, createSavedStateHandle(), dutyId, prefilledVehicle, plannedId)
             }
         }
     }

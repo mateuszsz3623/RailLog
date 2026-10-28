@@ -48,6 +48,7 @@ import pl.raillog.app.core.designsystem.component.RailLogHeroButton
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
+import pl.raillog.app.domain.model.PlannedDuty
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,8 +57,10 @@ import java.util.Locale
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToNewDuty: (String?) -> Unit,
-    onNavigateToDutyDetail: (Long) -> Unit
+    onNavigateToDutyDetail: (Long) -> Unit,
+    onSaveFromPlan: (Long) -> Unit
 ) {
+    val nextPlanned by viewModel.nextPlanned.collectAsState()
     val latestDuty by viewModel.latestDuty.collectAsState()
     val statistics by viewModel.statistics.collectAsState()
     val recentVehicles by viewModel.recentVehicles.collectAsState()
@@ -79,6 +82,13 @@ fun DashboardScreen(
                 formattedToday = formattedToday,
                 hasDutyToday = latestDuty?.date == today
             )
+        }
+
+        // Najbliższa służba z planu (tylko gdy zaimportowano plan)
+        nextPlanned?.let { planned ->
+            item {
+                PlannedDutyCard(planned = planned, onSaveFromPlan = { onSaveFromPlan(planned.id) })
+            }
         }
 
         // Bento KPI — asymetryczny wiersz liczb kokpitowych
@@ -340,7 +350,7 @@ private fun LatestDutyCard(
                 // Lewa kolumna — treść służby
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = formattedDate,
+                        text = listOfNotNull(formattedDate, duty.displayDutyCode).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -466,6 +476,37 @@ private fun DashboardEmptyState(onStartClick: () -> Unit) {
                 onClick = onStartClick,
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
+        }
+    }
+}
+
+@Composable
+private fun PlannedDutyCard(
+    planned: PlannedDuty,
+    onSaveFromPlan: () -> Unit
+) {
+    val today = LocalDate.now()
+    val dayLabel = when (planned.date) {
+        today -> "Dzisiaj"
+        today.plusDays(1) -> "Jutro"
+        else -> planned.date.format(DateTimeFormatter.ofPattern("EEEE dd.MM", Locale("pl")))
+            .replaceFirstChar { it.uppercase() }
+    }
+    Column {
+        FormSectionHeader(title = "NAJBLIŻSZA SŁUŻBA Z PLANU")
+        TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "$dayLabel · ${planned.displayName} · ${planned.timeRange()} (${planned.displayDuration})",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                RailLogHeroButton(
+                    text = "ZAPISZ Z PLANU",
+                    onClick = onSaveFromPlan
+                )
+            }
         }
     }
 }
