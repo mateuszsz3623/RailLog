@@ -7,7 +7,7 @@ import pl.raillog.app.core.database.entity.DutyEntity
 
 @Serializable
 data class BackupPayload(
-    val appName: String = "TaktRail",
+    val appName: String = "RailLog",
     val schemaVersion: Int = 2,
     val exportTimestamp: Long = System.currentTimeMillis(),
     val dutiesCount: Int,

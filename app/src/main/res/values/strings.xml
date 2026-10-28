@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TaktRail</string>
+    <string name="app_name">RailLog</string>
     <string name="app_subtitle">Dziennik służb maszynisty</string>
 
     <!-- Navigation -->

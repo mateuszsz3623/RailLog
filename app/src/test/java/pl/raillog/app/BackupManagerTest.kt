@@ -33,7 +33,7 @@ class BackupManagerTest {
         )
 
         val json = BackupManager.createBackupJson(duties)
-        assertTrue("JSON must contain TaktRail appName", json.contains("TaktRail"))
+        assertTrue("JSON must contain RailLog appName", json.contains("RailLog"))
 
         val result = BackupManager.parseBackupJson(json)
         assertTrue("Parsing backup should succeed", result.isSuccess)
@@ -45,10 +45,10 @@ class BackupManagerTest {
         assertEquals(90, payload.duties[0].overtimeMinutes)
         assertEquals(true, payload.duties[1].isWholeDutyOvertime)
 
-        // Verify backwards compatibility with legacy RailLog backup
-        val legacyJson = json.replace("TaktRail", "RailLog")
+        // Verify backwards compatibility with legacy TaktRail backup
+        val legacyJson = json.replace("RailLog", "TaktRail")
         val legacyResult = BackupManager.parseBackupJson(legacyJson)
-        assertTrue("Parsing legacy RailLog backup should succeed", legacyResult.isSuccess)
+        assertTrue("Parsing legacy TaktRail backup should succeed", legacyResult.isSuccess)
         assertEquals(2, legacyResult.getOrThrow().dutiesCount)
     }
 }

@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import pl.raillog.app.BuildConfig
 import pl.raillog.app.R
 import pl.raillog.app.core.designsystem.AppThemeMode
 import pl.raillog.app.core.designsystem.GriffinRed
@@ -320,14 +321,14 @@ fun SettingsScreen(
                             ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.ic_taktrail_logo),
-                                    contentDescription = "Logo TaktRail",
+                                    contentDescription = "Logo RailLog",
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "TAKTRAIL",
+                                    text = "RAILLOG",
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Black,
                                         letterSpacing = 1.2.sp
@@ -353,7 +354,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "TaktRail nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
+                            text = "RailLog nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -365,7 +366,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            StatusBadge(text = "TaktRail 2.0.0", color = GriffinRed)
+                            StatusBadge(text = "RailLog ${BuildConfig.VERSION_NAME}", color = GriffinRed)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(

@@ -36,7 +36,7 @@ class SettingsViewModel(
                     SettingsEvent.ShareContent(
                         content = csv,
                         mimeType = "text/csv",
-                        filename = "TaktRail_Sluzby.csv"
+                        filename = "RailLog_Sluzby.csv"
                     )
                 )
             } catch (e: Exception) {
@@ -56,7 +56,7 @@ class SettingsViewModel(
                     SettingsEvent.ShareContent(
                         content = json,
                         mimeType = "application/json",
-                        filename = "TaktRail_Backup.json"
+                        filename = "RailLog_Backup.json"
                     )
                 )
             } catch (e: Exception) {
