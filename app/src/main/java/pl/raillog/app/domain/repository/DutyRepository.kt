@@ -8,7 +8,7 @@ import pl.raillog.app.domain.model.StatisticsData
 import pl.raillog.app.domain.model.VehicleKnowledge
 import java.time.YearMonth
 
-data class RestoreOutcome(val count: Int, val autoBackupCreated: Boolean)
+data class RestoreOutcome(val count: Int, val autoBackupCreated: Boolean, val skippedDuplicates: Int = 0)
 
 data class AutoBackupInfo(val timestamp: Long, val dutiesCount: Int)
 

@@ -1,5 +1,6 @@
 package pl.raillog.app
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.raillog.app.domain.model.Duty
@@ -45,7 +46,8 @@ class CsvExporterTest {
         assertTrue(csv.contains("005"))
         assertTrue(csv.contains("Bydgoszcz Główna → Warszawa Wschodnia"))
         assertTrue(csv.contains("IC 1234"))
-        assertTrue(csv.contains("+1 h 20 min"))
+        assertTrue(csv.contains("1 h 20 min"))
+        assertFalse(csv.contains("+1 h 20 min"))
         assertTrue(csv.contains("06:00"))
         assertTrue(csv.contains("14:20"))
         assertTrue(csv.contains("8 h 20 min"))

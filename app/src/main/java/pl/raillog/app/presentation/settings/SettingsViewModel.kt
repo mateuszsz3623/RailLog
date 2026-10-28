@@ -16,6 +16,7 @@ import pl.raillog.app.domain.repository.DutyRepository
 
 sealed class SettingsEvent {
     data class ShareContent(val content: String, val mimeType: String, val filename: String) : SettingsEvent()
+    data class SaveToFile(val content: String, val filename: String) : SettingsEvent()
     data class ShowMessage(val message: String) : SettingsEvent()
 }
 
@@ -79,7 +80,7 @@ class SettingsViewModel(
                     SettingsEvent.ShareContent(
                         content = csv,
                         mimeType = "text/csv",
-                        filename = "RailLog_Sluzby.csv"
+                        filename = "RailLog_Sluzby_${fileDate()}.csv"
                     )
                 )
             } catch (e: CancellationException) {
@@ -92,6 +93,25 @@ class SettingsViewModel(
         }
     }
 
+    fun saveJsonToFile() {
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val json = repository.exportBackupJson()
+                _events.emit(SettingsEvent.SaveToFile(json, "RailLog_Backup_${fileDate()}.json"))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(SettingsEvent.ShowMessage("Błąd eksportu JSON: ${e.localizedMessage}"))
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    private fun fileDate(): String =
+        java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy_MM_dd"))
+
     fun exportJson() {
         viewModelScope.launch {
             _isProcessing.value = true
@@ -101,7 +121,7 @@ class SettingsViewModel(
                     SettingsEvent.ShareContent(
                         content = json,
                         mimeType = "application/json",
-                        filename = "RailLog_Backup.json"
+                        filename = "RailLog_Backup_${fileDate()}.json"
                     )
                 )
             } catch (e: CancellationException) {
@@ -122,7 +142,9 @@ class SettingsViewModel(
                 if (result.isSuccess) {
                     val outcome = result.getOrNull()
                     val count = outcome?.count ?: 0
-                    val message = if (overwrite && outcome?.autoBackupCreated == true) {
+                    val message = if (!overwrite) {
+                        "Dodano $count, pominięto ${outcome?.skippedDuplicates ?: 0} duplikatów ✓"
+                    } else if (outcome?.autoBackupCreated == true) {
                         "Przywrócono $count służb ✓. Poprzednie dane zapisano – możesz je przywrócić w Ustawieniach."
                     } else {
                         "Pomyślnie przywrócono $count służb ✓"

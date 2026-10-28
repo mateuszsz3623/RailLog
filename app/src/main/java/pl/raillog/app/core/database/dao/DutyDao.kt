@@ -35,19 +35,6 @@ interface DutyDao {
     @Query("SELECT * FROM duties ORDER BY date DESC, id DESC LIMIT 1")
     fun getLatestDuty(): Flow<DutyEntity?>
 
-    @Query("""
-        SELECT * FROM duties 
-        WHERE (vehicleSeries LIKE '%' || :query || '%')
-           OR (vehicleNumber LIKE '%' || :query || '%')
-           OR (notes LIKE '%' || :query || '%')
-           OR (additionalNotes LIKE '%' || :query || '%')
-           OR (routeSegments LIKE '%' || :query || '%')
-           OR (trainNumbers LIKE '%' || :query || '%')
-           OR (legs LIKE '%' || :query || '%')
-        ORDER BY date DESC, id DESC
-    """)
-    fun searchDuties(query: String): Flow<List<DutyEntity>>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDuty(duty: DutyEntity): Long
 

@@ -16,8 +16,4 @@ data class VehicleKnowledge(
     val daysAgo: Long,
     val totalDuties: Int,
     val duties: List<Duty>
-) {
-    // Backward-compatibility alias
-    val vehiclePlate: String
-        get() = vehicleType
-}
+)

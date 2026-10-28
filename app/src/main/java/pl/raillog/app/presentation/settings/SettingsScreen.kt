@@ -52,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,9 @@ import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,9 +108,41 @@ fun SettingsScreen(
         }
     }
 
+    // Zapis kopii JSON do pliku wskazanego przez użytkownika
+    var pendingFileContent by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        val content = pendingFileContent
+        pendingFileContent = null
+        if (uri != null && content != null) {
+            scope.launch {
+                val error = withContext(Dispatchers.IO) {
+                    try {
+                        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(content.toByteArray(Charsets.UTF_8)) }
+                            ?: throw java.io.IOException("Nie można otworzyć pliku")
+                        null
+                    } catch (e: Exception) {
+                        e.localizedMessage ?: "nieznany błąd"
+                    }
+                }
+                Toast.makeText(
+                    context,
+                    if (error == null) "Zapisano kopię do pliku ✓" else "Błąd zapisu pliku: $error",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
+                is SettingsEvent.SaveToFile -> {
+                    pendingFileContent = event.content
+                    saveFileLauncher.launch(event.filename)
+                }
                 is SettingsEvent.ShareContent -> {
                     shareContent(context, event.content, event.mimeType, event.filename)
                 }
@@ -298,6 +334,17 @@ fun SettingsScreen(
                                 Text("PRZYWRÓĆ", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = viewModel::saveJsonToFile,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Icon(imageVector = Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("ZAPISZ DO PLIKU", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                         autoBackupInfo?.let { info ->
                             Spacer(modifier = Modifier.height(10.dp))
                             OutlinedButton(
@@ -366,14 +413,14 @@ fun SettingsScreen(
                             Icon(imageVector = Icons.Default.Security, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "100% Prywatności i Działanie Offline",
+                                text = "Prywatność",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "RailLog nie łączy się z zewnętrznymi serwerami, nie wymaga zakładania konta, nie zawiera reklam i nie zbiera żadnej telemetrii. Twoje godziny pracy i notatki znajdują się wyłącznie w pamięci Twojego urządzenia.",
+                            text = "Bez kont, reklam i trackerów. Dane są na telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google. Podgląd pociągów łączy się z API PLK tylko, gdy o to poprosisz.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -558,11 +605,6 @@ private fun shareContent(context: Context, content: String, mimeType: String, fi
 
         context.startActivity(Intent.createChooser(intent, "Udostępnij lub zapisz plik"))
     } catch (e: Exception) {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, content)
-            putExtra(Intent.EXTRA_SUBJECT, "Eksport RailLog")
-        }
-        context.startActivity(Intent.createChooser(intent, "Udostępnij dane"))
+        Toast.makeText(context, "Nie udało się udostępnić pliku: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
     }
 }

@@ -26,7 +26,6 @@ private class FakeDutyDao(initial: List<DutyEntity>) : DutyDao {
     override fun getDutyById(id: Long): Flow<DutyEntity?> = flowOf(data.firstOrNull { it.id == id })
     override suspend fun getDutyByIdDirect(id: Long): DutyEntity? = data.firstOrNull { it.id == id }
     override fun getLatestDuty(): Flow<DutyEntity?> = flowOf(data.firstOrNull())
-    override fun searchDuties(query: String): Flow<List<DutyEntity>> = flowOf(data)
     override suspend fun insertDuty(duty: DutyEntity): Long {
         data = data + duty
         return duty.id
@@ -170,5 +169,19 @@ class RestoreBackupTest {
 
         assertEquals(false, result.getOrNull()?.autoBackupCreated)
         assertNull(store.latest())
+    }
+
+    @Test
+    fun mergeSkipsDutiesIdenticalToExistingOnes() = runBlocking {
+        val dao = FakeDutyDao(oldDuties)
+        val repo = DutyRepositoryImpl(dao, AutoBackupStore(backupDir()))
+        val incoming = oldDuties.take(1).map { it.copy(id = 77) } + newDuties
+
+        val result = repo.restoreBackupJson(BackupManager.createBackupJson(incoming), overwrite = false)
+
+        val outcome = result.getOrThrow()
+        assertEquals(1, outcome.count)
+        assertEquals(1, outcome.skippedDuplicates)
+        assertEquals(3, dao.data.size)
     }
 }

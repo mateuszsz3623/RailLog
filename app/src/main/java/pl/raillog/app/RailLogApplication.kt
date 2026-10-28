@@ -17,13 +17,7 @@ class RailLogApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
         database = RailLogDatabase.getDatabase(this)
         dutyRepository = DutyRepositoryImpl(database.dutyDao(), AutoBackupStore(File(filesDir, "auto_backup")))
-    }
-
-    companion object {
-        lateinit var instance: RailLogApplication
-            private set
     }
 }

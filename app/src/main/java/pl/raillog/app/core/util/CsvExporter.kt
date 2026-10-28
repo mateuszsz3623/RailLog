@@ -37,7 +37,7 @@ object CsvExporter {
                 }
             )
             val overtimeMin = duty.overtimeMinutes.toString()
-            val overtimeFmt = escapeCsv(duty.displayOvertime)
+            val overtimeFmt = escapeCsv(duty.displayOvertime.removePrefix("+"))
             val wholeDuty = if (duty.isWholeDutyOvertime) "TAK" else "NIE"
             val notes = escapeCsv(duty.notes ?: "")
             val additionalNotes = escapeCsv(duty.additionalNotes ?: "")

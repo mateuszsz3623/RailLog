@@ -331,7 +331,7 @@ fun HistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(vehicleKnowledge, key = { it.vehiclePlate }) { item ->
+                            items(vehicleKnowledge, key = { it.vehicleType }) { item ->
                                 VehicleKnowledgeCard(
                                     item = item,
                                     onDutyClick = onNavigateToDutyDetail

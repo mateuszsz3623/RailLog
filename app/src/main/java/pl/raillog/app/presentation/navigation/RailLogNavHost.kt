@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 import pl.raillog.app.core.designsystem.AppThemeMode
 import pl.raillog.app.domain.repository.DutyRepository
 import pl.raillog.app.presentation.calendar.CalendarScreen
+import pl.raillog.app.presentation.calendar.CalendarViewModel
 import pl.raillog.app.presentation.dashboard.DashboardScreen
 import pl.raillog.app.presentation.dashboard.DashboardViewModel
 import pl.raillog.app.presentation.detail.DutyDetailScreen
@@ -211,8 +212,9 @@ fun RailLogNavHost(
 
             // Calendar
             composable(Screen.Calendar.route) {
+                val vm: CalendarViewModel = viewModel(factory = CalendarViewModel.Factory(repository))
                 CalendarScreen(
-                    repository = repository,
+                    viewModel = vm,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDutyDetail = { dutyId ->
                         navController.navigate(Screen.DutyDetail.createRoute(dutyId))

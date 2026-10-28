@@ -7,6 +7,10 @@ data class ParsedVehicle(
 
 object VehicleStringParser {
 
+    private val SPACED_SERIES_REGEX = Regex("""^([A-Za-z]{2,4})\s+(\d+)""")
+    private val SERIES_NUMBER_REGEX = Regex("""^([A-Za-z0-9]+)[\s\-_\./]+([A-Za-z0-9]+)$""")
+
+
     /**
      * Normalizes series and number. If series contains both type and instance number
      * (e.g. "ED160-26" or "ET42-045"), it separates them cleanly into type and number.
@@ -49,11 +53,10 @@ object VehicleStringParser {
         }
 
         // Normalize internal spacing in Polish series like "EU 160" or "ED 160-26" -> "EU160" / "ED160-26"
-        val normalized = trimmed.replace(Regex("""^([A-Za-z]{2,4})\s+(\d+)"""), "$1$2")
+        val normalized = trimmed.replace(SPACED_SERIES_REGEX, "$1$2")
 
         // Match patterns like "ED160-26", "ET42-045", "EU200 005", "EU160/012", "EP09.046"
-        val regex = Regex("""^([A-Za-z0-9]+)[\s\-_\./]+([A-Za-z0-9]+)$""")
-        val match = regex.find(normalized)
+        val match = SERIES_NUMBER_REGEX.find(normalized)
 
         return if (match != null) {
             val series = match.groupValues[1].uppercase().trim()

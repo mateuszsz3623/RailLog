@@ -33,9 +33,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,7 +43,6 @@ import pl.raillog.app.core.designsystem.component.FormSectionHeader
 import pl.raillog.app.core.designsystem.component.StatusBadge
 import pl.raillog.app.core.designsystem.component.TechnicalCard
 import pl.raillog.app.domain.model.Duty
-import pl.raillog.app.domain.repository.DutyRepository
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -55,14 +51,13 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
-    repository: DutyRepository,
+    viewModel: CalendarViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToDutyDetail: (Long) -> Unit
 ) {
-    val allDuties by repository.getAllDuties().collectAsState(initial = emptyList())
-
-    var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    val allDuties by viewModel.duties.collectAsState()
+    val currentYearMonth by viewModel.yearMonth.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
 
     val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("pl"))
     val displayMonth = currentYearMonth.format(monthFormatter).replaceFirstChar { it.uppercase() }
@@ -104,7 +99,7 @@ fun CalendarScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { currentYearMonth = currentYearMonth.minusMonths(1) }) {
+                IconButton(onClick = viewModel::previousMonth) {
                     Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Poprzedni miesiąc")
                 }
                 Text(
@@ -112,7 +107,7 @@ fun CalendarScreen(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                IconButton(onClick = { currentYearMonth = currentYearMonth.plusMonths(1) }) {
+                IconButton(onClick = viewModel::nextMonth) {
                     Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Następny miesiąc")
                 }
             }
@@ -138,7 +133,7 @@ fun CalendarScreen(
                 yearMonth = currentYearMonth,
                 selectedDate = selectedDate,
                 duties = allDuties,
-                onDateSelected = { selectedDate = it }
+                onDateSelected = viewModel::selectDate
             )
 
             Spacer(modifier = Modifier.height(16.dp))
