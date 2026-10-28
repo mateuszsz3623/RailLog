@@ -35,7 +35,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 - [x] **1.1 Wbudowane fonty + nowa typografia**
   Dodać TTF (Inter: Regular/Medium/SemiBold/Bold; JetBrains Mono: Regular/Medium/SemiBold/Bold) do `app/src/main/res/font/` + rodziny XML (`inter.xml`, `jetbrains_mono.xml`) + `THIRD_PARTY.md` z licencjami OFL. Przepiąć `Type.kt` na nowe rodziny; nowa skala: `displayLarge` 44 sp, `displayMedium` 34 sp (JetBrains Mono, SemiBold), reszta skalowana spójnie; etykiety techniczne (`labelMedium`/`labelSmall`) na JetBrains Mono.
   Pliki: `res/font/*`, `Type.kt`, `THIRD_PARTY.md` (nowy).
-- [ ] **1.2 Komponenty kokpitu**
+- [x] **1.2 Komponenty kokpitu**
   W `RailLogComponents.kt`: nowy `BentoCard` (bez ramek w dark, tonalny, promień 20 dp; w light cienka ramka) i `CockpitNumber` (wielka liczba mono + jednostka + podpis, kolory z motywu). `TechnicalCard` na bezramkowy wariant (zachować opcjonalny border), usunąć hardcodowane kolory light (`Color(0xFFCBD5E1)` i podobne → `colorScheme.outline`/`outlineVariant`), `QuickChip`/`StatusBadge`/przyciski na nowej typografii i promieniach.
   Pliki: `RailLogComponents.kt` (+ dotknięte ekrany tylko na tyle, ile wymaga zmiana sygnatur).
 

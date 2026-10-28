@@ -1,7 +1,6 @@
 package pl.raillog.app.core.designsystem.component
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,21 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -41,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.raillog.app.core.designsystem.GriffinRed
@@ -83,7 +78,7 @@ fun RailLogHeroButton(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
@@ -98,7 +93,7 @@ fun RailLogHeroButton(
         }
         Text(
             text = cleanedText,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
         )
     }
 }
@@ -121,7 +116,7 @@ fun RailLogSecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, borderColor),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = contentColor)
     ) {
@@ -131,7 +126,7 @@ fun RailLogSecondaryButton(
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }
@@ -151,23 +146,23 @@ fun QuickChip(
     val backgroundColor = if (isSelected) {
         if (isDark) accentColor.copy(alpha = 0.15f) else LightGriffinRedBg
     } else {
-        if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White
+        MaterialTheme.colorScheme.surfaceVariant
     }
 
     val borderColor = if (isSelected) {
         if (isDark) accentColor else LightGriffinRedBorder
     } else {
-        if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else Color(0xFFCBD5E1)
+        if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
     }
 
     val textColor = if (isSelected) {
         if (isDark) accentColor else LightGriffinRedText
     } else {
-        if (isDark) MaterialTheme.colorScheme.onSurface else Color(0xFF1E293B)
+        MaterialTheme.colorScheme.onSurface
     }
 
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
         border = BorderStroke(1.dp, borderColor),
         shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
@@ -195,9 +190,7 @@ fun QuickChip(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                 ),
                 color = textColor
             )
@@ -205,25 +198,29 @@ fun QuickChip(
     }
 }
 
+/**
+ * Karta „bento" kokpitu: w motywie ciemnym bez ramki (hierarchia przez kolor powierzchni),
+ * w jasnym z cienką ramką [BorderStroke]. Zero elewacji, promień parametryzowalny.
+ */
 @Composable
-fun TechnicalCard(
+fun BentoCard(
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
     onClick: (() -> Unit)? = null,
+    corner: Dp = 20.dp,
     content: @Composable () -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val cardShape = RoundedCornerShape(14.dp)
+    val cardShape = RoundedCornerShape(corner)
     val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = if (isDark) {
+            MaterialTheme.colorScheme.surfaceVariant
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
     )
-    val cardBorder = BorderStroke(
-        width = 1.dp,
-        color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.55f) else Color(0xFFCBD5E1)
-    )
-    val cardElevation = CardDefaults.cardElevation(
-        defaultElevation = if (isDark) 0.dp else 1.5.dp
-    )
+    val cardBorder = if (isDark) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    val cardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
 
     if (onClick != null) {
         val view = LocalView.current
@@ -249,6 +246,63 @@ fun TechnicalCard(
             modifier = modifier
         ) {
             CardContentWithAccent(accentColor = accentColor, content = content)
+        }
+    }
+}
+
+/** Stara, utrzymywana karta techniczna — deleguje wygląd na [BentoCard]. */
+@Composable
+fun TechnicalCard(
+    modifier: Modifier = Modifier,
+    accentColor: Color? = null,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    BentoCard(
+        modifier = modifier,
+        accentColor = accentColor,
+        onClick = onClick,
+        content = content
+    )
+}
+
+/**
+ * Liczba kokpitowa: wartość w [androidx.compose.material3.Typography.displayLarge] (mono),
+ * jednostka w labelMedium współliniowo po baseline, etykieta w bodySmall pod wartością.
+ * Mierzy się treścią — bez sztywnych rozmiarów.
+ */
+@Composable
+fun CockpitNumber(
+    value: String,
+    unit: String? = null,
+    label: String? = null,
+    accentColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.displayLarge,
+                color = accentColor,
+                modifier = Modifier.alignByBaseline()
+            )
+            if (unit != null) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
+        }
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -343,7 +397,6 @@ fun StatusBadge(
 
 @Composable
 fun FormSectionHeader(title: String, modifier: Modifier = Modifier) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium.copy(
@@ -351,7 +404,7 @@ fun FormSectionHeader(title: String, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             fontSize = 12.sp
         ),
-        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF334155),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.padding(vertical = 4.dp)
     )
 }
