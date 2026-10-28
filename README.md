@@ -13,7 +13,7 @@ Filozofia projektowa: **Premium Fintech × Technical Precision × Railway Identi
 
 ## 📲 Pobierz aktualną wersję
 
-**Aktualna wersja: 2.2.0**
+**Aktualna wersja: 2.2.1**
 
 > ### 👉 [**Pobierz RailLog-release.apk**](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)
 > *(najnowsza wersja produkcyjna, automatycznie budowana z gałęzi `main`)*
