@@ -1,9 +1,12 @@
 package pl.raillog.app.data.repository
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import pl.raillog.app.core.database.dao.DutyDao
 import pl.raillog.app.core.database.entity.DutyEntity
+import pl.raillog.app.core.util.AutoBackupStore
 import pl.raillog.app.core.util.BackupManager
 import pl.raillog.app.core.util.CsvExporter
 import pl.raillog.app.core.util.VehicleStringParser
@@ -26,7 +29,8 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 class DutyRepositoryImpl(
-    private val dutyDao: DutyDao
+    private val dutyDao: DutyDao,
+    private val autoBackupStore: AutoBackupStore
 ) : DutyRepository {
 
     override fun getAllDuties(): Flow<List<Duty>> {
@@ -301,19 +305,46 @@ class DutyRepositoryImpl(
     }
 
     override suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<Int> {
-        val parseResult = BackupManager.parseBackupJson(jsonString)
-        if (parseResult.isFailure) {
-            return Result.failure(parseResult.exceptionOrNull() ?: Exception("Nieprawidłowy plik kopii"))
+        return try {
+            val payload = BackupManager.parseBackupJson(jsonString).getOrElse { return Result.failure(it) }
+            if (overwrite) {
+                val current = dutyDao.getAllDutiesSnapshot()
+                if (current.isNotEmpty()) {
+                    // Bez udanej kopii awaryjnej nie ruszamy danych.
+                    withContext(Dispatchers.IO) {
+                        autoBackupStore.save(BackupManager.createBackupJson(current))
+                    }
+                }
+                dutyDao.replaceAllDuties(payload.duties)
+                Result.success(payload.duties.size)
+            } else {
+                // Reset ID do 0 przy scalaniu, aby uniknąć kolizji
+                val cleanedList = payload.duties.map { it.copy(id = 0) }
+                dutyDao.insertAll(cleanedList)
+                Result.success(cleanedList.size)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        val payload = parseResult.getOrThrow()
-        if (overwrite) {
-            dutyDao.deleteAllDuties()
+    }
+
+    override suspend fun restoreLatestAutoBackup(): Result<Int> {
+        return try {
+            val file = withContext(Dispatchers.IO) { autoBackupStore.latest() }
+                ?: return Result.failure(Exception("Brak kopii awaryjnej do przywrócenia"))
+            val json = withContext(Dispatchers.IO) { file.readText(Charsets.UTF_8) }
+            val payload = BackupManager.parseBackupJson(json).getOrElse { return Result.failure(it) }
+            // Celowo bez nowej kopii awaryjnej: cofnięcie ma być jednorazowe,
+            // a kolejna kopia wypchnęłaby z rotacji starsze, jeszcze potrzebne pliki.
+            dutyDao.replaceAllDuties(payload.duties)
+            withContext(Dispatchers.IO) { autoBackupStore.delete(file) }
+            Result.success(payload.duties.size)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        val cleanedList = payload.duties.map {
-            // Reset ID to 0 if merging to avoid collision
-            if (overwrite) it else it.copy(id = 0)
-        }
-        dutyDao.insertAll(cleanedList)
-        return Result.success(cleanedList.size)
+    }
+
+    override suspend fun latestAutoBackupTimestamp(): Long? = withContext(Dispatchers.IO) {
+        autoBackupStore.latest()?.let { autoBackupStore.timestampOf(it) }
     }
 }

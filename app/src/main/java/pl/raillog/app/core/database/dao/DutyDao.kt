@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import pl.raillog.app.core.database.entity.DutyEntity
@@ -64,6 +65,12 @@ interface DutyDao {
 
     @Query("DELETE FROM duties")
     suspend fun deleteAllDuties()
+
+    @Transaction
+    suspend fun replaceAllDuties(duties: List<DutyEntity>) {
+        deleteAllDuties()
+        insertAll(duties)
+    }
 
     @Query("""
         SELECT vehicleSeries 

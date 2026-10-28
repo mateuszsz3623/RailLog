@@ -27,6 +27,43 @@ class SettingsViewModel(
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
+    private val _lastAutoBackupTime = MutableStateFlow<Long?>(null)
+    val lastAutoBackupTime: StateFlow<Long?> = _lastAutoBackupTime.asStateFlow()
+
+    init {
+        refreshAutoBackup()
+    }
+
+    private fun refreshAutoBackup() {
+        viewModelScope.launch {
+            _lastAutoBackupTime.value = try {
+                repository.latestAutoBackupTimestamp()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    fun undoLastRestore() {
+        viewModelScope.launch {
+            _isProcessing.value = true
+            try {
+                val result = repository.restoreLatestAutoBackup()
+                if (result.isSuccess) {
+                    val count = result.getOrNull() ?: 0
+                    _events.emit(SettingsEvent.ShowMessage("Cofnięto przywracanie – odzyskano $count służb ✓"))
+                } else {
+                    _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${result.exceptionOrNull()?.localizedMessage}"))
+                }
+            } catch (e: Exception) {
+                _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${e.localizedMessage}"))
+            } finally {
+                _isProcessing.value = false
+                refreshAutoBackup()
+            }
+        }
+    }
+
     fun exportCsv() {
         viewModelScope.launch {
             _isProcessing.value = true
@@ -74,7 +111,12 @@ class SettingsViewModel(
                 val result = repository.restoreBackupJson(jsonContent, overwrite)
                 if (result.isSuccess) {
                     val count = result.getOrNull() ?: 0
-                    _events.emit(SettingsEvent.ShowMessage("Pomyślnie przywrócono $count służb ✓"))
+                    val message = if (overwrite) {
+                        "Przywrócono $count służb ✓. Poprzednie dane zapisano – możesz to cofnąć w Ustawieniach."
+                    } else {
+                        "Pomyślnie przywrócono $count służb ✓"
+                    }
+                    _events.emit(SettingsEvent.ShowMessage(message))
                 } else {
                     _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${result.exceptionOrNull()?.localizedMessage}"))
                 }
@@ -82,6 +124,7 @@ class SettingsViewModel(
                 _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${e.localizedMessage}"))
             } finally {
                 _isProcessing.value = false
+                refreshAutoBackup()
             }
         }
     }

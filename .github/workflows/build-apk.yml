@@ -42,25 +42,21 @@ jobs:
           echo "Wykryta wersja aplikacji: $VER"
 
       - name: Configure Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "Decoding keystore from repository secrets..."
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > raillog-release.jks
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$RELEASE_KEY_PASSWORD" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "::warning::Brak sekretów podpisu (KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_PASSWORD) - PR buduje się bez podpisu release."
+            else
+              echo "::error::Brak sekretów podpisu: wymagane KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD i RELEASE_KEY_PASSWORD. Nie wydaję APK podpisanego innym kluczem."
+              exit 1
+            fi
           else
-            echo "Secrets KEYSTORE_BASE64 not set. Generating CI signing keystore to ensure APK is always signed and installable..."
-            keytool -genkeypair -v \
-              -keystore raillog-release.jks \
-              -alias raillog \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass RailLog2026SecureKey \
-              -keypass RailLog2026SecureKey \
-              -dname "CN=Mateusz Szerszen, OU=RailLog CI, O=RailLog, L=Bydgoszcz, ST=Kujawsko-Pomorskie, C=PL"
+            echo "$KEYSTORE_BASE64" | base64 --decode > raillog-release.jks
           fi
-
-      - name: Make Gradlew Executable
-        run: chmod +x gradlew
 
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest
@@ -70,9 +66,9 @@ jobs:
           ./gradlew assembleDebug
           ./gradlew assembleRelease
         env:
-          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD || 'RailLog2026SecureKey' }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'raillog' }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'RailLog2026SecureKey' }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Package Distributable APK Files
         run: |
@@ -166,14 +162,13 @@ jobs:
 
       - name: Publish APKs to apk-latest branch
         if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VER="${{ steps.ver.outputs.version }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git push origin --delete apk-latest || true
-          git switch --orphan apk-latest
-          cp dist/RailLog-release.apk .
-          cp dist/RailLog-debug.apk .
+          TMP=$(mktemp -d)
+          cp "$GITHUB_WORKSPACE"/dist/*.apk "$TMP"/
+          cd "$TMP"
           cat > POBIERZ.md <<EOF
           # RailLog — najnowsza wersja
 
@@ -189,7 +184,9 @@ jobs:
 
           Gałąź utrzymywana automatycznie przez CI — zawsze zawiera najnowsze APK.
           EOF
+          git init -b apk-latest
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git add -f RailLog-release.apk RailLog-debug.apk
           git commit -m "RailLog ${VER} — najnowsze APK"
-          git push origin apk-latest
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk-latest

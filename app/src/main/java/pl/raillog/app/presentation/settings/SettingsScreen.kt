@@ -80,7 +80,10 @@ fun SettingsScreen(
     val context = LocalContext.current
     val isProcessing by viewModel.isProcessing.collectAsState()
 
+    val lastAutoBackupTime by viewModel.lastAutoBackupTime.collectAsState()
+
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
+    var showUndoDialog by remember { mutableStateOf(false) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
 
     // File Picker for restoring backup
@@ -295,6 +298,26 @@ fun SettingsScreen(
                                 Text("PRZYWRÓĆ", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+                        lastAutoBackupTime?.let { millis ->
+                            Spacer(modifier = Modifier.height(10.dp))
+                            OutlinedButton(
+                                onClick = { showUndoDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("COFNIJ OSTATNIE PRZYWRÓCENIE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        text = "Kopia z " + java.time.Instant.ofEpochMilli(millis)
+                                            .atZone(java.time.ZoneId.systemDefault())
+                                            .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -380,6 +403,37 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    if (showUndoDialog) {
+        AlertDialog(
+            onDismissRequest = { showUndoDialog = false },
+            icon = {
+                Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            },
+            title = {
+                Text(text = "Cofnąć przywracanie?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Obecne dane zostaną zastąpione danymi sprzed ostatniego przywracania. Kontynuować?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUndoDialog = false
+                        viewModel.undoLastRestore()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("COFNIJ")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUndoDialog = false }) {
+                    Text("ANULUJ")
+                }
+            }
+        )
     }
 
     // Confirmation Dialog before Restoring Database

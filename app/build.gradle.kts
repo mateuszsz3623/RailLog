@@ -14,8 +14,8 @@ android {
         applicationId = "pl.raillog.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "2.2.0"
+        versionCode = 8
+        versionName = "2.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,14 +25,21 @@ android {
 
     signingConfigs {
         create("release") {
+            fun secret(gradleName: String, envName: String): String? =
+                providers.gradleProperty(gradleName).orNull?.takeIf { it.isNotEmpty() }
+                    ?: providers.environmentVariable(envName).orNull?.takeIf { it.isNotEmpty() }
+
             val keystoreFile = rootProject.file("raillog-release.jks")
-            if (keystoreFile.exists()) {
+            val storePass = secret("RAILLOG_STORE_PASSWORD", "RELEASE_KEYSTORE_PASSWORD")
+            val keyPass = secret("RAILLOG_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
+            if (keystoreFile.exists() && storePass != null && keyPass != null) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "RailLog2026SecureKey"
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "raillog"
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "RailLog2026SecureKey"
-                enableV1Signing = true
+                storePassword = storePass
+                keyAlias = secret("RAILLOG_KEY_ALIAS", "RELEASE_KEY_ALIAS") ?: "raillog"
+                keyPassword = keyPass
                 enableV2Signing = true
+            } else {
+                logger.warn("RailLog: brak keystore lub hasel podpisu - release bedzie niepodpisany.")
             }
         }
     }
