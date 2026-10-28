@@ -24,7 +24,7 @@
 
 ## TODO
 
-- Właściciel ręcznie na GitHubie: usunąć stare wydanie „TaktRail v2.0.0" (Releases → Delete) i ustawić opis repozytorium (About) + ewentualnie tematy (topics).
+- (brak)
 
 ## Dostępy
 
