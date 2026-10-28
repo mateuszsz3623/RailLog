@@ -53,7 +53,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 4 — Statystyki
 
-- [ ] **4.1 Kokpit liczb**
+- [x] **4.1 Kokpit liczb**
   `StatisticsScreen.kt`: wielkie liczby okresu (godziny, służby, nadgodziny) w `CockpitNumber`, ranking serii jako lista z cienkimi paskami proporcji (bez ramek), przełącznik okresu jako tonalny element.
   Pliki: `StatisticsScreen.kt`.
 
