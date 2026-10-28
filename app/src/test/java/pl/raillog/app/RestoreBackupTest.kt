@@ -91,7 +91,8 @@ class RestoreBackupTest {
 
         val result = repo.restoreBackupJson(BackupManager.createBackupJson(newDuties), overwrite = true)
 
-        assertEquals(1, result.getOrNull())
+        assertEquals(1, result.getOrNull()?.count)
+        assertTrue(result.getOrNull()!!.autoBackupCreated)
         assertEquals(newDuties, dao.data)
         val saved = BackupManager.parseBackupJson(store.latest()!!.readText()).getOrThrow()
         assertEquals(oldDuties, saved.duties)
@@ -119,9 +120,55 @@ class RestoreBackupTest {
 
         val result = repo.restoreLatestAutoBackup()
 
-        assertEquals(2, result.getOrNull())
+        assertEquals(2, result.getOrNull()?.count)
         assertEquals(oldDuties, dao.data)
         assertFalse(file.exists())
-        assertNull(repo.latestAutoBackupTimestamp())
+    }
+
+    @Test
+    fun restoreLatestAutoBackupSavesCurrentStateAsNewBackup() = runBlocking {
+        val dao = FakeDutyDao(oldDuties)
+        var now = 1000L
+        val store = AutoBackupStore(backupDir(), clock = { now })
+        val repo = DutyRepositoryImpl(dao, store)
+        repo.restoreBackupJson(BackupManager.createBackupJson(newDuties), overwrite = true)
+        now = 2000L
+
+        val result = repo.restoreLatestAutoBackup()
+
+        assertTrue(result.getOrNull()!!.autoBackupCreated)
+        val info = repo.latestAutoBackupInfo()!!
+        assertEquals(2000L, info.timestamp)
+        assertEquals(1, info.dutiesCount)
+        val saved = BackupManager.parseBackupJson(store.latest()!!.readText()).getOrThrow()
+        assertEquals(newDuties, saved.duties)
+    }
+
+    @Test
+    fun restoreLatestAutoBackupWorksWhenRotationRemovedSourceFile() = runBlocking {
+        val dao = FakeDutyDao(oldDuties)
+        var now = 1000L
+        val store = AutoBackupStore(backupDir(), maxFiles = 1, clock = { now })
+        val repo = DutyRepositoryImpl(dao, store)
+        repo.restoreBackupJson(BackupManager.createBackupJson(newDuties), overwrite = true)
+        now = 2000L
+
+        val result = repo.restoreLatestAutoBackup()
+
+        assertEquals(2, result.getOrNull()?.count)
+        assertEquals(oldDuties, dao.data)
+        assertEquals(1, store.latest()?.let { 1 })
+    }
+
+    @Test
+    fun restoreOnEmptyDatabaseCreatesNoAutoBackup() = runBlocking {
+        val dao = FakeDutyDao(emptyList())
+        val store = AutoBackupStore(backupDir())
+        val repo = DutyRepositoryImpl(dao, store)
+
+        val result = repo.restoreBackupJson(BackupManager.createBackupJson(newDuties), overwrite = true)
+
+        assertEquals(false, result.getOrNull()?.autoBackupCreated)
+        assertNull(store.latest())
     }
 }

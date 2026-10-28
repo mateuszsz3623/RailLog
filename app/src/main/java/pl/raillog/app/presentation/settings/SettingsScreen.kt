@@ -80,7 +80,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val isProcessing by viewModel.isProcessing.collectAsState()
 
-    val lastAutoBackupTime by viewModel.lastAutoBackupTime.collectAsState()
+    val autoBackupInfo by viewModel.autoBackupInfo.collectAsState()
 
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
     var showUndoDialog by remember { mutableStateOf(false) }
@@ -298,7 +298,7 @@ fun SettingsScreen(
                                 Text("PRZYWRÓĆ", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        lastAutoBackupTime?.let { millis ->
+                        autoBackupInfo?.let { info ->
                             Spacer(modifier = Modifier.height(10.dp))
                             OutlinedButton(
                                 onClick = { showUndoDialog = true },
@@ -307,11 +307,9 @@ fun SettingsScreen(
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("COFNIJ OSTATNIE PRZYWRÓCENIE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text("PRZYWRÓĆ DANE SPRZED OSTATNIEJ ZMIANY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     Text(
-                                        text = "Kopia z " + java.time.Instant.ofEpochMilli(millis)
-                                            .atZone(java.time.ZoneId.systemDefault())
-                                            .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+                                        text = "Kopia z ${formatBackupTime(info.timestamp)} · ${info.dutiesCount} służb",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -412,10 +410,12 @@ fun SettingsScreen(
                 Icon(imageVector = Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
             title = {
-                Text(text = "Cofnąć przywracanie?", fontWeight = FontWeight.Bold)
+                Text(text = "Przywrócić dane sprzed zmiany?", fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("Obecne dane zostaną zastąpione danymi sprzed ostatniego przywracania. Kontynuować?")
+                val info = autoBackupInfo
+                val backupLabel = info?.let { "${formatBackupTime(it.timestamp)} (${it.dutiesCount} służb)" } ?: "wybranej daty"
+                Text("Obecne dane zostaną zastąpione kopią z $backupLabel. Obecny stan też zapiszemy jako kopię awaryjną.")
             },
             confirmButton = {
                 Button(
@@ -425,7 +425,7 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("COFNIJ")
+                    Text("PRZYWRÓĆ")
                 }
             },
             dismissButton = {
@@ -488,6 +488,11 @@ fun SettingsScreen(
         )
     }
 }
+
+private fun formatBackupTime(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
 
 @Composable
 private fun ThemeOptionRow(

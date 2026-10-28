@@ -8,6 +8,10 @@ import pl.raillog.app.domain.model.StatisticsData
 import pl.raillog.app.domain.model.VehicleKnowledge
 import java.time.YearMonth
 
+data class RestoreOutcome(val count: Int, val autoBackupCreated: Boolean)
+
+data class AutoBackupInfo(val timestamp: Long, val dutiesCount: Int)
+
 interface DutyRepository {
     fun getAllDuties(): Flow<List<Duty>>
     fun getFilteredDuties(filter: DutyFilter): Flow<List<Duty>>
@@ -24,7 +28,7 @@ interface DutyRepository {
     fun getVehicleKnowledge(query: String = ""): Flow<List<VehicleKnowledge>>
     suspend fun exportCsv(): String
     suspend fun exportBackupJson(): String
-    suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<Int>
-    suspend fun restoreLatestAutoBackup(): Result<Int>
-    suspend fun latestAutoBackupTimestamp(): Long?
+    suspend fun restoreBackupJson(jsonString: String, overwrite: Boolean): Result<RestoreOutcome>
+    suspend fun restoreLatestAutoBackup(): Result<RestoreOutcome>
+    suspend fun latestAutoBackupInfo(): AutoBackupInfo?
 }

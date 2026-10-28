@@ -3,6 +3,7 @@ package pl.raillog.app.presentation.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pl.raillog.app.domain.repository.AutoBackupInfo
 import pl.raillog.app.domain.repository.DutyRepository
 
 sealed class SettingsEvent {
@@ -27,8 +29,8 @@ class SettingsViewModel(
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
-    private val _lastAutoBackupTime = MutableStateFlow<Long?>(null)
-    val lastAutoBackupTime: StateFlow<Long?> = _lastAutoBackupTime.asStateFlow()
+    private val _autoBackupInfo = MutableStateFlow<AutoBackupInfo?>(null)
+    val autoBackupInfo: StateFlow<AutoBackupInfo?> = _autoBackupInfo.asStateFlow()
 
     init {
         refreshAutoBackup()
@@ -36,8 +38,10 @@ class SettingsViewModel(
 
     private fun refreshAutoBackup() {
         viewModelScope.launch {
-            _lastAutoBackupTime.value = try {
-                repository.latestAutoBackupTimestamp()
+            _autoBackupInfo.value = try {
+                repository.latestAutoBackupInfo()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 null
             }
@@ -50,11 +54,13 @@ class SettingsViewModel(
             try {
                 val result = repository.restoreLatestAutoBackup()
                 if (result.isSuccess) {
-                    val count = result.getOrNull() ?: 0
-                    _events.emit(SettingsEvent.ShowMessage("Cofnięto przywracanie – odzyskano $count służb ✓"))
+                    val count = result.getOrNull()?.count ?: 0
+                    _events.emit(SettingsEvent.ShowMessage("Przywrócono dane sprzed ostatniej zmiany – $count służb ✓"))
                 } else {
                     _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${result.exceptionOrNull()?.localizedMessage}"))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${e.localizedMessage}"))
             } finally {
@@ -76,6 +82,8 @@ class SettingsViewModel(
                         filename = "RailLog_Sluzby.csv"
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _events.emit(SettingsEvent.ShowMessage("Błąd eksportu CSV: ${e.localizedMessage}"))
             } finally {
@@ -96,6 +104,8 @@ class SettingsViewModel(
                         filename = "RailLog_Backup.json"
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _events.emit(SettingsEvent.ShowMessage("Błąd eksportu JSON: ${e.localizedMessage}"))
             } finally {
@@ -110,9 +120,10 @@ class SettingsViewModel(
             try {
                 val result = repository.restoreBackupJson(jsonContent, overwrite)
                 if (result.isSuccess) {
-                    val count = result.getOrNull() ?: 0
-                    val message = if (overwrite) {
-                        "Przywrócono $count służb ✓. Poprzednie dane zapisano – możesz to cofnąć w Ustawieniach."
+                    val outcome = result.getOrNull()
+                    val count = outcome?.count ?: 0
+                    val message = if (overwrite && outcome?.autoBackupCreated == true) {
+                        "Przywrócono $count służb ✓. Poprzednie dane zapisano – możesz je przywrócić w Ustawieniach."
                     } else {
                         "Pomyślnie przywrócono $count służb ✓"
                     }
@@ -120,6 +131,8 @@ class SettingsViewModel(
                 } else {
                     _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${result.exceptionOrNull()?.localizedMessage}"))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _events.emit(SettingsEvent.ShowMessage("Błąd przywracania: ${e.localizedMessage}"))
             } finally {
