@@ -70,7 +70,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 6 — Porządki
 
-- [ ] **6.1 Wersja aplikacji**
+- [x] **6.1 Wersja aplikacji**
   `app/build.gradle.kts`: `versionCode = 7`, `versionName = "2.2.0"`.
 
 ### Etap 7 — Kontrola przed publikacją
