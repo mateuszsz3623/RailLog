@@ -2,10 +2,13 @@
 
 > Prowadzi Architekt w OpenCode. Stan projektu, decyzje, TODO, gdzie są dostępy. Bez haseł i sekretów.
 
-## Stan projektu (2026-10-28, po redesignie)
+## Stan projektu (2026-10-29)
 
-- Aplikacja: **RailLog 2.2.0** (versionCode 7) — redesign **„KABINA"** (kokpit maszynisty) scalony do `main` z gałęzi `feature/redesign-kabina`: fonty Inter + JetBrains Mono wbudowane offline, bento-grid Dashboardu z liczbami kokpitowymi (CockpitNumber), karty bez ramek (BentoCard), dolny pasek z pigułką aktywności, Statystyki/Historia/Szczegóły/Formularz/Kalendarz/Ustawienia na kolorach motywu (zero hardcodowanych hexów), ciemny motyw wiodący. Logo/ikona bez zmian.
-- Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest"); główne pliki wydania nazywają się RailLog-release.apk / RailLog-debug.apk.
+- Aplikacja: **RailLog 2.3.0** (versionCode 9) — pakiet 2.3 scalony z `feature/pakiet-2-3`: plan służb z ICS, numer służby, wymiar czasu pracy (baza v5), podgląd pociągu na żywo z API PLK, marka NIVEMI w README i opisach wydań.
+- **Repo jest PUBLICZNE od 28.10** (wcześniej prywatne). Skutek: README nie może już mówić o prywatnym repo — poprawione 29.10 (D.4, commit 3f0fc76): przywrócona plakietka „Pobierz APK" i sekcja „📲 Pobierz aktualną wersję" (release/latest + alternatywa raw z gałęzi `apk-latest`).
+- **Decyzja właściciela (29.10): klucz API PLK w publicznym APK zostaje** — nie usuwamy wydań i nie generujemy nowego klucza. Ryzyko przyjęte świadomie; przy kolejnej zmianie podejścia trzeba: nowy klucz, sekret `PLK_API_KEY`, usunięcie wydania i publikacja nowego APK.
+- **Plan `.ai/plan.md` (redesign „KABINA", 2.2.0) jest w całości wykonany** — nowego planu dla 2.3 nie ma, praca 2.3 nie ma wpisów w logu poza D.4.
+- Wydania APK buduje GitHub Actions (`.github/workflows/build-apk.yml`) i publikuje w GitHub Releases (wydanie „latest"); główne pliki wydania nazywają się RailLog-release.apk / RailLog-debug.apk. Stan 29.10: wydanie „latest" = 2.3.0, oba APK obecne, gałąź `apk-latest` = 2.3.0.
 - Reguły pracy agentów (z Nordtherm, dostosowane do Androida) scalone do `main`.
 - Środowisko: JAVA_HOME wskazuje `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot` (jedyny JDK na dysku) — OK od 28.10. Lokalnie działa też assembleRelease (keystore lokalny dostępny).
 
@@ -17,6 +20,7 @@
 ## Decyzje
 
 - **Reguły pracy agentów**: jak w Nordtherm, ale sprawdzenie to `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`; kontrola przed publikacją = pełny build + instalacja APK na telefonie właściciela; bez emulatora i telefonu na co dzień.
+- **Klucz PLK w publicznym repo — zostaje (decyzja właściciela 29.10)**; świadomie nie usuwamy wydań i nie rotujemy klucza.
 - **Tryb Kodera**: automatyczny — Architekt sam woła Kodera w tle, modelem **GLM-5.3-Flash** (`zai-coding-plan/glm-5.3-flash`, wliczony w plan Z.AI).
 - **Scalenie do `main` = publikacja nowego APK** w GitHub Releases. Wersjonowany tag `v*` tylko za wyraźną zgodą właściciela.
 - Architekt nie widzi obrazów wprost — zrzuty przegłada narzędziami wizyjnymi MCP (zai-mcp-server), gdy trzeba.
