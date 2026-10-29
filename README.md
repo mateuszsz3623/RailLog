@@ -2,7 +2,7 @@
 
 ### Twój dziennik służb — prosty, szybki, zawsze pod ręką
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/mateuszsz3623/RailLog/build-apk.yml?branch=main&style=for-the-badge)](https://github.com/mateuszsz3623/RailLog/actions)
+[![Pobierz APK](https://img.shields.io/badge/Pobierz_APK-RailLog_Najnowsza_Wersja-brightgreen?style=for-the-badge&logo=android)](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk) [![Build Status](https://img.shields.io/github/actions/workflow/status/mateuszsz3623/RailLog/build-apk.yml?branch=main&style=for-the-badge)](https://github.com/mateuszsz3623/RailLog/actions)
 
 **Aktualna wersja: 2.3.0**
 
@@ -23,15 +23,22 @@ Dla maszynistów, którzy chcą szybko zapisać służbę po zjeździe: trasę, 
 - **Eksport i kopie zapasowe** — CSV pod polski Excel, kopia JSON z przywracaniem, automatyczna kopia awaryjna przed każdym nadpisaniem danych.
 - **Szkic formularza** — jeśli telefon zamknie aplikację w trakcie wpisywania, nic nie przepada.
 
-## Instalacja i aktualizacja
+## 📲 Pobierz aktualną wersję
 
-Repozytorium jest **prywatne**:
+> ### 👉 [**Pobierz RailLog-release.apk**](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-release.apk)
 
-1. Na telefonie zaloguj się na GitHubie w przeglądarce.
-2. Wejdź w **Releases** i pobierz plik `RailLog-release.apk`.
-3. Otwórz go i zezwól na instalację z nieznanych źródeł, gdy system o to poprosi.
+*(najnowsza wersja produkcyjna, automatycznie budowana z gałęzi `main`)*
 
-Aktualizacja instaluje się **ponad starą wersję** — dane zostają. Wersja debug to osobna aplikacja „RailLog Debug", która instaluje się obok i niczego nie nadpisuje.
+Alternatywnie bezpośrednio z repo (gałąź `apk-latest`, zawsze najnowsze): [RailLog-release.apk](https://github.com/mateuszsz3623/RailLog/raw/apk-latest/RailLog-release.apk)
+
+**Instalacja krok po kroku:**
+
+1. Pobierz plik (link powyżej albo z zakładki [Releases](https://github.com/mateuszsz3623/RailLog/releases)).
+2. Otwórz go i zezwól na instalację z nieznanych źródeł, gdy system o to poprosi.
+3. Zainstaluj.
+4. Aktualizacja instaluje się **ponad starą wersję** — dane zostają.
+
+Wersja diagnostyczna (do testów): [RailLog-debug.apk](https://github.com/mateuszsz3623/RailLog/releases/download/latest/RailLog-debug.apk) — osobna aplikacja „RailLog Debug", instaluje się obok.
 
 ## Prywatność
 
