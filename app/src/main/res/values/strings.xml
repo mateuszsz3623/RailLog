@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">RailLog</string>
-    <string name="privacy_note">Bez kont, reklam i trackerów. Dane są na telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google. Podgląd pociągów łączy się z API PLK tylko, gdy o to poprosisz.</string>
+    <string name="privacy_note">Bez kont, reklam i trackerów. Aplikacja działa w 100% offline — dane są tylko na Twoim telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google.</string>
 </resources>
