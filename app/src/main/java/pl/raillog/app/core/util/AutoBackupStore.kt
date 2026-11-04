@@ -18,7 +18,13 @@ class AutoBackupStore(
         if (!dir.isDirectory && !dir.mkdirs()) {
             throw IOException("Nie można utworzyć katalogu kopii awaryjnych: ${dir.path}")
         }
-        val target = File(dir, PREFIX + clock() + SUFFIX)
+        // Zapewnia unikalną nazwę: przy zapisie w tej samej milisekundzie przesuwa
+        // znacznik o 1 ms dalej, żeby nie nadpisać istniejącej kopii (format pliku bez zmian).
+        var timestamp = clock()
+        while (File(dir, PREFIX + timestamp + SUFFIX).exists()) {
+            timestamp++
+        }
+        val target = File(dir, PREFIX + timestamp + SUFFIX)
         val tmp = File(dir, target.name + ".tmp")
         tmp.writeText(json, Charsets.UTF_8)
         if (!tmp.renameTo(target)) {
