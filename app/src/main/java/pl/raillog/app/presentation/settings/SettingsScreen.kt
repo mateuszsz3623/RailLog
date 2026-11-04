@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -442,7 +443,7 @@ fun SettingsScreen(
 
             // Section 4: PRIVACY & ABOUT
             item {
-                FormSectionHeader(title = "O APLIKACJI I PRYWATNOŚĆ")
+                FormSectionHeader(title = "PRYWATNOŚĆ")
                 TechnicalCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier
@@ -507,10 +508,46 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             StatusBadge(text = "RailLog ${BuildConfig.VERSION_NAME}", color = MaterialTheme.colorScheme.primary)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+            }
+
+            // Section: O APLIKACJI (branding NIVEMI)
+            item {
+                FormSectionHeader(title = "O APLIKACJI")
+                TechnicalCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val darkBackground = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                        Image(
+                            painter = painterResource(
+                                id = if (darkBackground) R.drawable.ic_nivemi_logo_on_dark
+                                else R.drawable.ic_nivemi_logo_on_light
+                            ),
+                            contentDescription = "Logo NIVEMI",
+                            modifier = Modifier
+                                .width(140.dp)
+                                .height(33.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Stworzone przez NIVEMI — Mateusz Szerszeń",
-                            style = MaterialTheme.typography.labelMedium,
+                            text = "RailLog to cyfrowy dziennik służby maszynisty — szybki, czytelny i w 100% offline. Rejestruj służby, śledź godziny i nadgodziny, przeglądaj historię i kalendarz. Twoje dane zostają na Twoim telefonie.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Zaprojektowana i stworzona przez NIVEMI",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "nivemi.pl",
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
