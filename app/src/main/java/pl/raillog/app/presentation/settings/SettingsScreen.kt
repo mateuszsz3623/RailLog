@@ -494,7 +494,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Bez kont, reklam i trackerów. Dane są na telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google. Podgląd pociągów łączy się z API PLK tylko, gdy o to poprosisz.",
+                            text = "Bez kont, reklam i trackerów. Aplikacja działa w 100% offline — dane są tylko na Twoim telefonie; kopia zapasowa Androida może je przechować na Twoim koncie Google.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -507,14 +507,6 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             StatusBadge(text = "RailLog ${BuildConfig.VERSION_NAME}", color = MaterialTheme.colorScheme.primary)
-                        }
-                        if (BuildConfig.PLK_API_KEY.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Dane o pociągach: PKP Polskie Linie Kolejowe S.A.",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
