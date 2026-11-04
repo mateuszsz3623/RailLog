@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo NIVEMI (poziome, mono) — czarne, na jasne tło. Przekonwertowane z svg.nivemi.logo/nivemi-logo-poziome-mono-czarne.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="140dp"
+    android:height="33dp"
+    android:viewportWidth="436"
+    android:viewportHeight="101">
+    <!-- Litera N + kropka -->
+    <path
+        android:fillColor="#11100E"
+        android:pathData="M0,100 L0,32.5 L7,22 L18,22 L48,67 L48,22 L66,22 L66,89.5 L59,100 L48,100 L18,55 L18,100 Z M75,91.6 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+    <group android:translateX="117">
+        <!-- Następne litery (oryginalna grupa transform=translate(117 0)) -->
+        <path
+            android:fillColor="#11100E"
+            android:fillType="evenOdd"
+            android:pathData="M0,100 L0,50 L6,44 L13,44 L13,47.7 A26.5,26.5 0 0,1 53,70.5 L53,100 L40,100 L40,70.5 A13.5,13.5 0 0,0 13,70.5 L13,100 Z M65,100 L65,44 L78,44 L78,100 Z M85,44 L99.5,44 L112,79 L124.5,44 L139,44 L119,100.5 L105,100.5 Z M201.36,78 A28.5,28.5 0 1,0 194.68,91.07 L185.02,82.37 A15.5,15.5 0 0,1 159.21,78 L201.36,78 Z M159.21,66 A15.5,15.5 0 0,1 187.79,66 Z M212,100 L212,50 L218,44 L225,44 L225,46.48 A23.5,23.5 0 0,1 252.5,51.28 A23.5,23.5 0 0,1 293,67.5 L293,100 L280,100 L280,67.5 A10.5,10.5 0 0,0 259,67.5 L259,100 L246,100 L246,67.5 A10.5,10.5 0 0,0 225,67.5 L225,100 Z M305,100 L305,44 L318,44 L318,100 Z" />
+        <!-- Kropki nad literami -->
+        <path
+            android:fillColor="#11100E"
+            android:pathData="M64,29.5 a7.5,7.5 0 1,0 15,0 a7.5,7.5 0 1,0 -15,0 M304,29.5 a7.5,7.5 0 1,0 15,0 a7.5,7.5 0 1,0 -15,0" />
+    </group>
+</vector>
