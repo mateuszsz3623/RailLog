@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Train
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -91,8 +90,7 @@ import java.util.Locale
 fun DutyFormScreen(
     viewModel: DutyFormViewModel,
     onNavigateBack: () -> Unit,
-    onSaveSuccess: () -> Unit,
-    onOpenTrainStatus: ((String, LocalDate) -> Unit)?
+    onSaveSuccess: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val isDirty by viewModel.isDirty.collectAsState()
@@ -147,9 +145,6 @@ fun DutyFormScreen(
             }
         )
     }
-
-    // Podgląd pociągu działa dla służby z dzisiaj lub wczoraj
-    val trainStatusAllowed = state.date == LocalDate.now() || state.date == LocalDate.now().minusDays(1)
 
     val polishDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("pl"))
     val formattedDate = state.date.format(polishDateFormatter).replaceFirstChar { it.uppercase() }
@@ -303,10 +298,7 @@ fun DutyFormScreen(
                             recentVehicles = recentVehicles,
                             onUpdate = { updated -> viewModel.updateLeg(index, updated) },
                             onDelete = { viewModel.removeLeg(index) },
-                            onSwap = { viewModel.swapLegStations(index) },
-                            onTrainStatus = if (onOpenTrainStatus != null && trainStatusAllowed && leg.trainNumber.any { it.isDigit() }) {
-                                { onOpenTrainStatus(leg.trainNumber.filter { it.isDigit() }, state.date) }
-                            } else null
+                            onSwap = { viewModel.swapLegStations(index) }
                         )
                     }
                 }
@@ -663,8 +655,7 @@ private fun LegInputCard(
     recentVehicles: List<String>,
     onUpdate: (LegFormState) -> Unit,
     onDelete: () -> Unit,
-    onSwap: () -> Unit,
-    onTrainStatus: (() -> Unit)?
+    onSwap: () -> Unit
 ) {
     TechnicalCard(
         accentColor = MaterialTheme.colorScheme.primary,
@@ -750,13 +741,6 @@ private fun LegInputCard(
                     placeholder = { Text("np. 3560") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    trailingIcon = onTrainStatus?.let { open ->
-                        {
-                            IconButton(onClick = open) {
-                                Icon(imageVector = Icons.Default.Visibility, contentDescription = "Podgląd pociągu")
-                            }
-                        }
-                    },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
                     colors = customTextFieldColors()
                 )
