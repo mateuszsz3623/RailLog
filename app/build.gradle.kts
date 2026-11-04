@@ -26,10 +26,6 @@ android {
         versionCode = 9
         versionName = "2.3.0"
 
-        // Klucz API PLK: tylko z właściwości Gradle lub zmiennej środowiskowej, nigdy z repo
-        val plkApiKey = secret("RAILLOG_PLK_API_KEY", "PLK_API_KEY") ?: ""
-        buildConfigField("String", "PLK_API_KEY", "\"$plkApiKey\"")
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
