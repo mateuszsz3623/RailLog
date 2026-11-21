@@ -7,8 +7,8 @@ Plik ładuje się przy każdej sesji, więc ma być krótki.
 
 - **Co to jest**: TaktRail (ewolucja projektu RailLog) — aplikacja Android dla maszynistów kolejowych do rejestrowania służb, w 100% offline i prywatna.
 - **Stack**: Kotlin 2.0+ (JVM 17) + Jetpack Compose + Material 3 + Room (SQLite) + MVVM/Clean Architecture + Kotlinx Serialization; build Gradle.
-- **Jak zbudować**: `.\gradlew assembleDebug` — APK ląduje w `app/build/outputs/apk/debug/app-debug.apk`.
-- **Jak sprawdzić, że działa**: `.\gradlew assembleDebug` oraz `.\gradlew testDebugUnitTest` (wynik bez błędów).
+- **Jak zbudować**: `./gradlew assembleDebug` — APK ląduje w `app/build/outputs/apk/debug/app-debug.apk`.
+- **Jak sprawdzić, że działa**: `./gradlew assembleDebug` oraz `./gradlew testDebugUnitTest` (wynik bez błędów).
 - **Gdzie to działa / wdrożenie**: GitHub Releases (`https://github.com/mateuszsz3623/RailLog/releases`). Push na `main` uruchamia GitHub Actions (`.github/workflows/build-apk.yml`), które budują APK i publikują je w wydaniu „latest" — **scalenie do `main` = publikacja nowej wersji APK do pobrania**. Podpis release bierze się z keystore w GitHub Secrets; pliki `raillog-release.jks` i `KEYSTORE_BASE64.txt` są tylko lokalnie i nigdy nie trafiają do repo.
 - Źródłem prawdy jest repo na GitHubie (`origin/main`). Pracuję na PC i laptopie.
 
@@ -37,7 +37,7 @@ Plik ładuje się przy każdej sesji, więc ma być krótki.
 1. **Plan** — z Claude'em (on zapisuje i wypycha plan na gałąź roboczą) albo **bez Claude'a**: właściciel pisze Architektowi w OpenCode „zaplanuj sam" i Architekt zapisuje plan w tym samym formacie. Dalej wszystko działa tak samo.
 2. **Pętla w OpenCode (samodzielna)** — Architekt zapisuje kolejne zadanie do `.ai/zadanie.md` → przekazuje je Koderowi (w trybie automatycznym sam, w ręcznym przez właściciela) → Koder wykonuje i raportuje → Architekt sprawdza (**ZATWIERDZAM** / **POPRAWKI**) → odhacza zadanie w planie, dopisuje wpis do `.ai/log.md`, robi commit i push gałęzi roboczej i bierze następne zadanie. Zatrzymuje się tylko przy zmianie planu, trzecich poprawkach tego samego zadania, blokadzie i przed scaleniem do `main`.
 3. **Drobnostki po drodze** (tekst, nazwa, mała poprawka) — Architekt dopisuje je w planie w sekcji „Drobne zmiany po drodze" i załatwia sam, bez Claude'a.
-4. **Kontrola przed publikacją** — raz, gdy wszystkie zadania są odhaczone: Architekt robi pełny build (`.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`) i podaje właścicielowi APK do zainstalowania na telefonie i sprawdzenia; poprawki zleca Koderowi.
+4. **Kontrola przed publikacją** — raz, gdy wszystkie zadania są odhaczone: Architekt robi pełny build (`./gradlew assembleDebug` + `./gradlew testDebugUnitTest`) i podaje właścicielowi APK do zainstalowania na telefonie i sprawdzenia; poprawki zleca Koderowi.
 5. **Do Claude'a wracamy tylko** (jeśli plan pisał Claude):
    - przy **zmianie planu** — czegoś nie da się zrobić jak w planie, trzeba zmienić „Decyzje" albo zakres,
    - na **recenzję końcową** — po kontroli przed publikacją (raz na plan, nie po każdym etapie).

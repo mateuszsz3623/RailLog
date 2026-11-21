@@ -20,7 +20,7 @@ Pracujesz w trzech momentach — poza nimi pracę prowadzi Architekt w OpenCode:
    (etapy → zadania; każde z plikami, kryterium „gotowe” i komendą sprawdzenia; jedno zadanie = jedna sesja Kodera),
    commit `docs: plan …` i **push tej gałęzi**. Na koniec podaj nazwę gałęzi i jedno zdanie do wklejenia Architektowi w OpenCode.
    Plan ma być samodzielny — tańszy model ma go wykonać bez dopytywania.
-   Pole „sprawdź” w zadaniach = **szybka komenda tekstowa** (np. `.\gradlew assembleDebug`, `.\gradlew testDebugUnitTest`).
+   Pole „sprawdź” w zadaniach = **szybka komenda tekstowa** (np. `./gradlew assembleDebug`, `./gradlew testDebugUnitTest`).
    Nie wpisuj do zadań emulatora, instalacji APK na telefonie ani testów ręcznych — one zostają na etap
    „Kontrola przed publikacją” (zawsze ostatni, prowadzi go Architekt).
    Pole „Tryb Kodera” zostaw puste — Architekt zapyta o nie właściciela.

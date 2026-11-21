@@ -70,7 +70,7 @@ Właściciel nie chce siedzieć przy komputerze i zatwierdzać każdego kroku. D
 
 - Komendy gita **uruchamiasz sam narzędziem shell** — masz do tego uprawnienia. **Nigdy nie każ właścicielowi wpisywać ich ręcznie.**
 - „Nie zmieniasz kodu" dotyczy wyłącznie plików projektu. Git i pliki `.ai/**` nie są objęte tym zakazem.
-- Terminal to PowerShell na Windows: **jedna komenda na jedno wywołanie** (bez `&&`, `;` i `cd` w tej samej linii),
+- Terminal: bash (Ubuntu na PC i laptopie). **Jedna komenda na jedno wywołanie** (bez `&&`, `;` i `cd` w tej samej linii),
   komunikat commita w cudzysłowie: `git commit -m "docs: opis"`.
 - **Push zawsze z nazwą gałęzi**: pierwszy raz `git push -u origin <gałąź>`, potem `git push origin <gałąź>`.
   Samo `git push` jest zablokowane. Przed pushem sprawdź gałąź (`git branch --show-current`).
@@ -123,8 +123,8 @@ Jeśli nie masz pewności, czy to drobnostka czy zmiana planu — zapytaj właś
 
 Gdy wszystkie zadania planu są odhaczone — przed recenzją u Claude'a i przed scaleniem:
 
-1. **Pełny build** — zleć Koderowi zadanie „K — pełny build" (`.\gradlew assembleDebug` i `.\gradlew testDebugUnitTest`,
-   a przy zmianach w wydaniu także `.\gradlew assembleRelease`), żeby potwierdzić, że po wszystkich zmianach wszystko przechodzi czysto.
+1. **Pełny build** — zleć Koderowi zadanie „K — pełny build" (`./gradlew assembleDebug` i `./gradlew testDebugUnitTest`,
+   a przy zmianach w wydaniu także `./gradlew assembleRelease`), żeby potwierdzić, że po wszystkich zmianach wszystko przechodzi czysto.
 2. **Test na telefonie** — podaj właścicielowi ścieżkę do APK (`app/build/outputs/apk/debug/app-debug.apk`) i poproś o instalację
    oraz sprawdzenie kluczowych funkcji. Sam nie masz telefonu ani emulatora — bez właściciela ten krok się nie obejdzie,
    więc się zatrzymaj i czekaj na jego opinię.
@@ -159,7 +159,7 @@ Pliki: <które zmienić/utworzyć>
 Wymagania: <lista>
 Nie rób: <czego nie ruszać>
 Gotowe, gdy: <kryterium>
-Sprawdź: <szybka komenda tekstowa — np. .\gradlew assembleDebug, .\gradlew testDebugUnitTest; bez emulatora i telefonu>
+Sprawdź: <szybka komenda tekstowa — np. ./gradlew assembleDebug, ./gradlew testDebugUnitTest; bez emulatora i telefonu>
 ```
 
 ## Werdykt

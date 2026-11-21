@@ -75,7 +75,7 @@ Przebudowa wyglądu całej aplikacji w duchu **„KABINA"** — kokpitu nowoczes
 
 ### Etap 7 — Kontrola przed publikacją
 
-- [x] **K.1 Pełny build** (Koder): `.\gradlew assembleDebug` + `.\gradlew testDebugUnitTest`.
+- [x] **K.1 Pełny build** (Koder): `./gradlew assembleDebug` + `./gradlew testDebugUnitTest`.
 - [x] **K.2 Test na telefonie** (właściciel): sprawdzenie wydania z GitHub Releases po scaleniu (decyzja właściciela z 28.10 przeniesiona z poprzedniego planu); ewentualne uwagi załatwiamy jako K.x / D.x.
 
 ## Drobne zmiany po drodze
