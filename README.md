@@ -48,10 +48,10 @@ Bez kont, reklam i trackerów. Dane są na telefonie; kopia zapasowa Androida mo
 
 Kotlin, Jetpack Compose, Material 3, Room, MVVM.
 
-```powershell
-.\gradlew assembleDebug
-.\gradlew testDebugUnitTest
-.\gradlew lintDebug
+```bash
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew lintDebug
 ```
 
 Klucz API PLK podajesz lokalnie jako właściwość Gradle `RAILLOG_PLK_API_KEY` (np. w `~/.gradle/gradle.properties`), w CI jako sekret `PLK_API_KEY`. Bez klucza podgląd pociągów jest ukryty. Push na `main` buduje i publikuje APK w wydaniu „latest".

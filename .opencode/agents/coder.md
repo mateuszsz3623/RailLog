@@ -20,11 +20,6 @@ permissions:
   - { action: shell, resource: "rm -r*", effect: deny }
   - { action: shell, resource: "rm -f*", effect: deny }
   - { action: shell, resource: "rmdir *", effect: deny }
-  - { action: shell, resource: "rd *", effect: deny }
-  - { action: shell, resource: "del /s*", effect: deny }
-  - { action: shell, resource: "Remove-Item *-Recurse*", effect: deny }
-  - { action: shell, resource: "Remove-Item * -r", effect: deny }
-  - { action: shell, resource: "Remove-Item * -r *", effect: deny }
 ---
 
 # Koder
@@ -44,13 +39,13 @@ Twoja robota to **pisać kod**. Sprawdzasz krótko i oddajesz — dokładną kon
 
 ## Sprawdzanie — krótko, bez emulatora i telefonu
 
-- Sprawdzasz **tylko** komendą z pola „Sprawdź" (`.\gradlew assembleDebug`, `.\gradlew testDebugUnitTest`, `.\gradlew lint` itp.).
+- Sprawdzasz **tylko** komendą z pola „Sprawdź" (`./gradlew assembleDebug`, `./gradlew testDebugUnitTest`, `./gradlew lint` itp.).
 - **Nie uruchamiasz emulatora, nie instalujesz APK na telefonie, nie robisz zrzutów ekranu ani testów ręcznych** —
   testy na telefonie robi właściciel raz, przed publikacją (kontrola przed publikacją).
 - Jeśli pole „Sprawdź" mimo to każe testować na telefonie lub emulatorze — zrób resztę sprawdzenia, a w raporcie wpisz:
   „test na telefonie → kontrola przed publikacją".
-- **Zadanie „K — pełny build"**: uruchom `.\gradlew assembleDebug` i `.\gradlew testDebugUnitTest`
-  (ewentualnie także `.\gradlew assembleRelease`), zapisz wyniki w raporcie i podaj ścieżkę do APK
+- **Zadanie „K — pełny build"**: uruchom `./gradlew assembleDebug` i `./gradlew testDebugUnitTest`
+  (ewentualnie także `./gradlew assembleRelease`), zapisz wyniki w raporcie i podaj ścieżkę do APK
   (`app/build/outputs/apk/debug/app-debug.apk`). Samej aplikacji nie testujesz.
 - Build Gradle może trwać kilka minut — to normalne, poczekaj na wynik.
 
@@ -70,7 +65,7 @@ Twoja robota to **pisać kod**. Sprawdzasz krótko i oddajesz — dokładną kon
 ## Czego nie możesz (zablokowane w uprawnieniach)
 
 - `git commit`, `git push`, `git merge`, `git rebase`, `git reset --hard`, `git clean` — git robi Architekt.
-- Usuwanie folderów rekurencyjnie (`rm -r`, `Remove-Item -Recurse` itp.). Pojedyncze pliki usuwać możesz.
+- Usuwanie folderów rekurencyjnie (`rm -r`, `rm -rf`, `rmdir` itp.). Pojedyncze pliki usuwać możesz.
 - `gh`, `ssh`, `scp`, `sftp`, `rsync` — wydanie APK idzie wyłącznie przez GitHub Actions po scaleniu do `main`.
 - Zgłoś blokadę w raporcie i nie obchodź jej innym sposobem.
 
